@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>User Profile</h1>
+    
+    <div class="profile-details">
+        <p><strong>Username:</strong> {{ current_user.username }}</p>
+        <p><strong>Email:</strong> {{ current_user.email }}</p>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-details {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        padding: 20px;
+        background: rgba(79, 70, 229, 0.05);
+        border-radius: 10px;
+    }
+
+    .profile-details p {
+        margin: 0;
+        font-size: 16px;
+        color: var(--text-light);
+    }
+
+    body.dark .profile-details p {
+        color: var(--text-dark);
+    }
+
+    .profile-details strong {
+        font-weight: 600;
+        margin-right: 10px;
+    }
+</style>
+{% endblock %}

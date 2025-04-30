@@ -1,0 +1,523 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Exchange Providers</h1>
+    
+    <div id="map-error" class="error-message"></div>
+    <div id="loading" class="loading">
+        <i class="fas fa-spinner fa-spin"></i> Searching for exchange providers...
+    </div>
+    
+    <div class="search-container">
+        <input type="text" id="location-input" class="search-input" placeholder="Enter address or city" autocomplete="off">
+        <button id="search-btn" class="search-btn">
+            <i class="fas fa-search"></i> Search
+        </button>
+        <button id="location-btn" class="location-btn" title="Use my location">
+            <i class="fas fa-location-arrow"></i>
+        </button>
+        <div id="autocomplete-list" class="autocomplete-items"></div>
+    </div>
+    
+    <div id="map"></div>
+    
+    <div class="results-container" id="results-container">
+        <!-- Results will be populated here -->
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .container {
+        max-width: 800px;
+    }
+
+    .search-container {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        position: relative;
+    }
+    
+    .search-input {
+        flex: 1;
+        min-width: 250px;
+        padding: 12px 15px;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        font-size: 15px;
+        background-color: var(--input-light);
+        color: var(--text-light);
+        transition: all 0.3s ease;
+    }
+    
+    body.dark .search-input {
+        background-color: var(--input-dark);
+        color: var(--text-dark);
+        border-color: #555;
+    }
+    
+    .search-btn {
+        background-color: var(--accent);
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.2s;
+    }
+    
+    .search-btn:hover {
+        background-color: #4338ca;
+    }
+    
+    .location-btn {
+        background-color: var(--accent);
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .location-btn:hover {
+        background-color: #4338ca;
+    }
+    
+    #map {
+        height: 400px;
+        width: 100%;
+        margin: 20px 0;
+        border-radius: 10px;
+        z-index: 1;
+    }
+    
+    .results-container {
+        margin-top: 25px;
+    }
+    
+    .exchange-item {
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: border-color 0.3s ease;
+    }
+    
+    body.dark .exchange-item {
+        border-color: #3f3f51;
+    }
+    
+    .exchange-item h3 {
+        margin: 0 0 5px 0;
+        color: var(--text-light);
+        transition: color 0.3s ease;
+    }
+    
+    body.dark .exchange-item h3 {
+        color: var(--text-dark);
+    }
+    
+    .exchange-item p {
+        margin: 5px 0;
+        color: #6b7280;
+        transition: color 0.3s ease;
+    }
+    
+    body.dark .exchange-item p {
+        color: #d1d5db;
+    }
+    
+    .exchange-item a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+        white-space: nowrap;
+        margin-left: 15px;
+        transition: color 0.3s ease;
+    }
+    
+    body.dark .exchange-item a {
+        color: #818cf8;
+    }
+    
+    .exchange-item a:hover {
+        text-decoration: underline;
+    }
+    
+    .error-message {
+        color: #ef4444;
+        margin: 10px 0;
+        padding: 10px;
+        background: #fee2e2;
+        border-radius: 8px;
+        display: none;
+    }
+    
+    body.dark .error-message {
+        background: #7f1d1d;
+        color: #fecaca;
+    }
+    
+    .loading {
+        display: none;
+        text-align: center;
+        padding: 15px;
+        color: var(--accent);
+    }
+
+    /* Autocomplete dropdown */
+    .autocomplete-items {
+        position: absolute;
+        border: 1px solid #d1d5db;
+        border-bottom: none;
+        border-top: none;
+        z-index: 99;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--input-light);
+        border-radius: 0 0 10px 10px;
+        max-height: 200px;
+        overflow-y: auto;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        display: none;
+    }
+    
+    body.dark .autocomplete-items {
+        background: var(--input-dark);
+        border-color: #555;
+    }
+    
+    .autocomplete-items div {
+        padding: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #d1d5db;
+    }
+    
+    body.dark .autocomplete-items div {
+        border-color: #555;
+    }
+    
+    .autocomplete-items div:hover {
+        background-color: #f0f4f8;
+    }
+    
+    body.dark .autocomplete-items div:hover {
+        background-color: #2c2c3c;
+    }
+    
+    .autocomplete-active {
+        background-color: var(--accent) !important;
+        color: white;
+    }
+
+    /* Custom marker styles */
+    .custom-marker {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .marker-icon {
+        font-size: 24px;
+        text-shadow: 0 0 3px rgba(0,0,0,0.5);
+    }
+    
+    .marker-blue {
+        color: var(--accent);
+    }
+    
+    .marker-red {
+        color: #ef4444;
+    }
+
+    /* Phone icon styles */
+    .exchange-item .fa-phone,
+    .exchange-item .fa-clock {
+        color: var(--accent);
+    }
+    
+    body.dark .exchange-item .fa-phone,
+    body.dark .exchange-item .fa-clock {
+        color: #818cf8;
+    }
+    
+    body.dark .leaflet-tile {
+        filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+    }
+    
+    body.dark .leaflet-container {
+        background: #2c2c3c;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
+<script>
+    let map;
+    let markers = [];
+    let geocoder;
+    let autocompleteTimeout;
+    let selectedLocation = null;
+    const DEFAULT_RADIUS = 20000; // 20km as default
+    
+    // Initialize map
+    function initMap() {
+        map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Initialize geocoder
+        geocoder = L.Control.Geocoder.nominatim();
+        
+        return map;
+    }
+    
+    // Initialize map on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        initMap();
+        
+        // Setup autocomplete
+        const locationInput = document.getElementById('location-input');
+        locationInput.addEventListener('input', handleAutocomplete);
+        locationInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('search-btn').click();
+            }
+        });
+    });
+
+    // Handle autocomplete
+    function handleAutocomplete() {
+        clearTimeout(autocompleteTimeout);
+        const input = document.getElementById('location-input').value.trim();
+        const autocompleteList = document.getElementById('autocomplete-list');
+        
+        if (input.length < 3) {
+            autocompleteList.innerHTML = '';
+            autocompleteList.style.display = 'none';
+            selectedLocation = null;
+            return;
+        }
+        
+        autocompleteTimeout = setTimeout(() => {
+            geocoder.geocode(input, (results) => {
+                if (!results || results.length === 0) {
+                    autocompleteList.innerHTML = '';
+                    autocompleteList.style.display = 'none';
+                    selectedLocation = null;
+                    return;
+                }
+                
+                autocompleteList.innerHTML = '';
+                results.slice(0, 5).forEach((result, index) => {
+                    const item = document.createElement('div');
+                    item.innerHTML = `<strong>${result.name}</strong><br>${result.properties?.address?.city || ''} ${result.properties?.address?.country || ''}`;
+                    item.addEventListener('click', () => {
+                        document.getElementById('location-input').value = result.name;
+                        selectedLocation = result;
+                        autocompleteList.innerHTML = '';
+                        autocompleteList.style.display = 'none';
+                    });
+                    autocompleteList.appendChild(item);
+                });
+                autocompleteList.style.display = 'block';
+            });
+        }, 300);
+    }
+
+    // Close autocomplete when clicking outside
+    document.addEventListener('click', (e) => {
+        if (e.target.id !== 'location-input') {
+            document.getElementById('autocomplete-list').style.display = 'none';
+        }
+    });
+
+    // Search by location button
+    document.getElementById('search-btn').addEventListener('click', () => {
+        const locationInput = document.getElementById('location-input').value.trim();
+        
+        if (!locationInput) {
+            showError("Please enter a location");
+            return;
+        }
+        
+        if (selectedLocation) {
+            // Use the selected location from autocomplete
+            searchExchanges(selectedLocation.center.lat, selectedLocation.center.lng, DEFAULT_RADIUS);
+        } else {
+            // Geocode the entered text
+            geocodeAndSearch(locationInput, DEFAULT_RADIUS);
+        }
+    });
+    
+    // Use current location button
+    document.getElementById('location-btn').addEventListener('click', () => {
+        if (!navigator.geolocation) {
+            showError("Geolocation is not supported by your browser");
+            return;
+        }
+        
+        showLoading(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                searchExchanges(latitude, longitude, DEFAULT_RADIUS);
+            },
+            (error) => {
+                showLoading(false);
+                showError("Error getting location: " + error.message);
+            }
+        );
+    });
+    
+    // Geocode an address to coordinates
+    function geocodeAndSearch(location, radius) {
+        showLoading(true);
+        geocoder.geocode(location, (results) => {
+            if (!results || results.length === 0) {
+                showLoading(false);
+                showError("Location not found");
+                return;
+            }
+            
+            const bestMatch = results[0];
+            const { center } = bestMatch;
+            
+            searchExchanges(center.lat, center.lng, radius);
+        });
+    }
+    
+    // Search for exchanges at given coordinates
+    function searchExchanges(lat, lng, radius) {
+        clearResults();
+        clearMarkers();
+        
+        // Center map on search location
+        map.setView([lat, lng], 14);
+        
+        // Add marker for search location (blue)
+        addMarker(lat, lng, "Your Location", "blue");
+        
+        // Fetch nearby exchanges
+        fetch(`/api/nearby_exchanges?lat=${lat}&lng=${lng}&radius=${radius}`)
+            .then(async response => {
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                return response.json();
+            })
+            .then(data => {
+                showLoading(false);
+                displayResults(data.elements || []);
+            })
+            .catch(error => {
+                showLoading(false);
+                showError("Error finding exchanges: " + error.message);
+            });
+    }
+    
+    // Display results on map and in list
+    function displayResults(exchanges) {
+        const container = document.getElementById('results-container');
+        
+        if (!exchanges || exchanges.length === 0) {
+            container.innerHTML = '<p>No exchange providers found in this area.</p>';
+            return;
+        }
+        
+        exchanges.forEach(exchange => {
+            const lat = exchange.lat || exchange.center?.lat;
+            const lon = exchange.lon || exchange.center?.lon;
+            const name = exchange.tags?.name || "Currency Exchange";
+            
+            // Improved address handling
+            const addressParts = [];
+            if (exchange.tags?.['addr:housenumber']) addressParts.push(exchange.tags['addr:housenumber']);
+            if (exchange.tags?.['addr:street']) addressParts.push(exchange.tags['addr:street']);
+            if (exchange.tags?.['addr:city']) addressParts.push(exchange.tags['addr:city']);
+            if (exchange.tags?.['addr:postcode']) addressParts.push(exchange.tags['addr:postcode']);
+            
+            const address = addressParts.length > 0 
+                ? addressParts.join(', ')
+                : (exchange.tags?.['addr:full'] || exchange.tags?.['address'] || `Location: ${lat?.toFixed(5)}, ${lon?.toFixed(5)}`);
+            
+            // Add operator/network information if available
+            const operator = exchange.tags?.operator ? ` (${exchange.tags.operator})` : '';
+            
+            if (lat && lon) {
+                // Add marker for exchange (now red)
+                addMarker(lat, lon, name, "red");
+                
+                // Add to results list
+                const item = document.createElement('div');
+                item.className = 'exchange-item';
+                item.innerHTML = `
+                    <div>
+                        <h3>${name}${operator}</h3>
+                        ${address ? `<p>${address}</p>` : ''}
+                        ${exchange.tags?.['contact:phone'] ? `<p><i class="fas fa-phone"></i> ${exchange.tags['contact:phone']}</p>` : ''}
+                        ${exchange.tags?.['opening_hours'] ? `<p><i class="fas fa-clock"></i> ${exchange.tags['opening_hours']}</p>` : ''}
+                    </div>
+                    <div>
+                        <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=18/${lat}/${lon}" 
+                           target="_blank" rel="noopener noreferrer">
+                            <i class="fas fa-directions"></i> View Details
+                        </a>
+                    </div>
+                `;
+                container.appendChild(item);
+            }
+        });
+    }
+    
+    // Add a marker to the map
+    function addMarker(lat, lng, title, color) {
+        const marker = L.marker([lat, lng], {
+            icon: L.divIcon({
+                className: 'custom-marker',
+                html: `<i class="fas fa-map-marker-alt marker-icon marker-${color}" 
+                      style="color: ${color === 'blue' ? '#4f46e5' : '#ef4444'}"></i>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 24]
+            })
+        }).addTo(map)
+        .bindPopup(title);
+        
+        markers.push(marker);
+    }
+    
+    // Clear all markers from map
+    function clearMarkers() {
+        markers.forEach(marker => map.removeLayer(marker));
+        markers = [];
+    }
+    
+    // Clear results list
+    function clearResults() {
+        document.getElementById('results-container').innerHTML = '';
+    }
+    
+    // Show error message
+    function showError(message) {
+        const errorDiv = document.getElementById('map-error');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        setTimeout(() => errorDiv.style.display = 'none', 5000);
+    }
+    
+    // Show/hide loading indicator
+    function showLoading(show) {
+        document.getElementById('loading').style.display = show ? 'block' : 'none';
+    }
+</script>
+{% endblock %}

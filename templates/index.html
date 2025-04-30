@@ -1,0 +1,786 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1 id="tool-title">OptiExchange Converter</h1>
+    
+    <div class="tool-selector">
+        <button class="tool-tab {% if selected_tool == 'converter' %}active{% else %}inactive{% endif %}" data-tool="converter">
+            <i class="fas fa-calculator"></i> Converter
+        </button>
+        <button class="tool-tab {% if selected_tool == 'predictor' %}active{% else %}inactive{% endif %}" data-tool="predictor">
+            <i class="fas fa-chart-line"></i> Predictor
+        </button>
+        <button class="tool-tab {% if selected_tool == 'trends' %}active{% else %}inactive{% endif %}" data-tool="trends">
+            <i class="fas fa-history"></i> Trends
+        </button>
+    </div>
+    
+    <div class="tool-container {% if selected_tool == 'converter' %}active{% endif %}" id="converter-tool">
+        <div class="converter-row">
+            <input type="number" class="converter-input" id="amount" placeholder="Enter amount" min="0" step="0.01">
+            <select class="converter-select" id="from-currency">
+                <option value="" disabled selected>Select Currency</option>
+                {% for curr in currencies %}
+                    <option value="{{ curr }}">{{ curr }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="converter-row">
+            <input type="number" class="converter-input" id="converted-amount" placeholder="Result" readonly>
+            <select class="converter-select" id="to-currency">
+                <option value="" disabled selected>Select Currency</option>
+                {% for curr in currencies %}
+                    <option value="{{ curr }}">{{ curr }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <button class="converter-swap" id="swap-currencies" title="Swap currencies">
+            <i class="fas fa-exchange-alt"></i>
+        </button>
+        
+        <div class="converter-result" id="conversion-rate"></div>
+    </div>
+    
+    <div class="tool-container {% if selected_tool == 'predictor' %}active{% endif %}" id="predictor-tool">
+        <form method="POST" action="/predict" id="prediction-form">
+            <div class="form-group">
+                <label for="currency">Select Currency:</label>
+                <div class="select-wrapper">
+                    <select name="currency" id="currency" required>
+                        <option value="" disabled selected>Select Currency</option>
+                        {% for curr in currencies %}
+                            <option value="{{ curr }}">{{ curr }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="date">Select Date:</label>
+                <div class="date-wrapper">
+                    <input type="date" id="date" name="date" required style="-webkit-appearance: none; -moz-appearance: none; appearance: none;">
+                </div>
+            </div>
+            
+            <input type="submit" value="Predict Rate" class="predict-rate-btn">
+        </form>
+        
+        {% if request.method == 'POST' and prediction %}
+            <div class="result" id="prediction-result">
+                <strong>Exchange Rate:</strong> {{ prediction }}
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="tool-container {% if selected_tool == 'trends' %}active{% endif %}" id="trends-tool">
+        <div class="form-group">
+            <label for="chart-from-currency">From Currency:</label>
+            <div class="select-wrapper">
+                <select id="chart-from-currency" class="converter-select">
+                    <option value="" disabled selected>Select Currency</option>
+                    {% for curr in currencies %}
+                        <option value="{{ curr }}">{{ curr }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="chart-to-currency">To Currency:</label>
+            <div class="custom-select">
+                <div class="custom-select-toggle" id="chart-to-currency-toggle">
+                    <span>Select Currency</span>
+                </div>
+                <ul class="custom-select-menu" id="chart-to-currency-menu">
+                    <li class="disabled" data-value="">Select Currency</li>
+                    {% for curr in currencies %}
+                        <li data-value="{{ curr }}">{{ curr }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="chart-year">Year:</label>
+            <div class="select-wrapper">
+                <select id="chart-year" class="converter-select">
+                    <option value="" disabled selected>Select Year</option>
+                    <option value="2023">2023</option>
+                    <option value="2022">2022</option>
+                    <option value="2021">2021</option>
+                    <option value="2020">2020</option>
+                </select>
+            </div>
+        </div>
+        
+        <button id="update-chart" class="update-chart-btn">
+            <i class="fas fa-sync-alt"></i> View Chart
+        </button>
+        
+        <div class="chart-container">
+            <canvas id="historyChart"></canvas>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .container {
+        max-width: 600px;
+        padding: 25px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    body.dark .container {
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+
+    .tool-selector {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 25px;
+        gap: 8px;
+    }
+
+    .tool-tab {
+        padding: 10px 20px;
+        background: var(--tab-inactive);
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        color: var(--text-light);
+        font-size: 0.95rem;
+        border: none;
+        flex: 1;
+        text-align: center;
+        max-width: 150px;
+        transform: translateY(0);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .tool-tab:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    body.dark .tool-tab {
+        background: rgba(79, 70, 229, 0.2);
+        color: var(--text-dark);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    body.dark .tool-tab:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+    }
+
+    .tool-tab.active {
+        background: var(--accent);
+        color: white;
+        transform: translateY(0);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .tool-container {
+        display: none;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .tool-container.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .converter-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        align-items: center;
+    }
+
+    .converter-input {
+        flex: 2;
+        padding: 12px 15px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 15px;
+        background-color: var(--input-light);
+        color: var(--text-light);
+        transition: all 0.3s ease;
+    }
+
+    body.dark .converter-input {
+        background-color: var(--input-dark);
+        color: var(--text-dark);
+        border-color: #555;
+    }
+
+    .converter-select {
+        flex: 1;
+        padding: 12px 15px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 15px;
+        background-color: var(--input-light);
+        color: var(--text-light);
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        transition: all 0.3s ease;
+    }
+
+    body.dark .converter-select {
+        background-color: var(--input-dark);
+        color: var(--text-dark);
+        border-color: #555;
+    }
+
+    .converter-result {
+        font-size: 0.95rem;
+        text-align: center;
+        margin: 15px 0;
+        color: var(--accent);
+        padding: 10px;
+        background: rgba(79, 70, 229, 0.08);
+        border-radius: 8px;
+    }
+
+    .converter-swap {
+        background: var(--accent);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 5px auto;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .converter-swap:hover {
+        transform: rotate(180deg) scale(1.1);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+    label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--text-light);
+        font-size: 0.95rem;
+    }
+
+    body.dark label {
+        color: var(--text-dark);
+    }
+
+    select, input[type="date"] {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 15px;
+        background-color: var(--input-light);
+        color: var(--text-light);
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+    }
+
+    body.dark select, body.dark input[type="date"] {
+        background-color: var(--input-dark);
+        color: var(--text-dark);
+        border-color: #555;
+    }
+
+    .predict-rate-btn {
+        width: 100%;
+        padding: 12px 15px;
+        background-color: var(--accent);
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        margin-top: 10px;
+        border-radius: 8px;
+        font-size: 15px;
+    }
+
+    .select-wrapper, .date-wrapper {
+        position: relative;
+    }
+
+    .select-wrapper::after {
+        content: "▼";
+        font-size: 12px;
+        top: 50%;
+        right: 15px;
+        transform: translateY(-50%);
+        position: absolute;
+        pointer-events: none;
+        color: var(--text-light);
+    }
+
+    body.dark .select-wrapper::after {
+        color: var(--text-dark);
+    }
+
+    .date-wrapper::after {
+        display: none;
+    }
+
+    .result {
+        background-color: #d1fae5;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+        text-align: center;
+        font-size: 15px;
+        color: #065f46;
+        transition: all 0.3s ease;
+    }
+
+    body.dark .result {
+        background-color: #059669;
+        color: #d1fae5;
+    }
+
+    .custom-select {
+        position: relative;
+        width: 100%;
+    }
+
+    .custom-select-toggle {
+        padding: 12px 15px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 15px;
+        background-color: var(--input-light);
+        color: var(--text-light);
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+
+    body.dark .custom-select-toggle {
+        background-color: var(--input-dark);
+        color: var(--text-dark);
+        border-color: #555;
+    }
+
+    .custom-select-toggle::after {
+        content: "▼";
+        font-size: 12px;
+        color: var(--text-light);
+    }
+
+    body.dark .custom-select-toggle::after {
+        color: var(--text-dark);
+    }
+
+    .custom-select-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: var(--input-light);
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        margin-top: 5px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    body.dark .custom-select-menu {
+        background-color: var(--input-dark);
+        border-color: #555;
+    }
+
+    .custom-select-menu.active {
+        display: block;
+    }
+
+    .custom-select-menu li {
+        padding: 10px 15px;
+        list-style: none;
+        cursor: pointer;
+        font-size: 15px;
+        color: var(--text-light);
+        transition: background 0.2s ease;
+    }
+
+    body.dark .custom-select-menu li {
+        color: var(--text-dark);
+    }
+
+    .custom-select-menu li:hover {
+        background: rgba(79, 70, 229, 0.1);
+    }
+
+    .custom-select-menu li.disabled {
+        color: var(--placeholder-light);
+        cursor: not-allowed;
+    }
+
+    body.dark .custom-select-menu li.disabled {
+        color: var(--placeholder-dark);
+    }
+
+    .chart-container {
+        height: 280px;
+        margin-top: 15px;
+        display: none;
+    }
+
+    .chart-container.visible {
+        display: block;
+    }
+
+    .update-chart-btn {
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .update-chart-btn:hover {
+        background: #4338ca;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 20px;
+        }
+
+        .tool-selector {
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tool-tab {
+            max-width: 100%;
+            padding: 12px;
+        }
+
+        .tool-tab:hover {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .converter-row {
+            flex-direction: column;
+        }
+
+        .converter-input, .converter-select {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    function switchTool(toolName) {
+        const tabs = document.querySelectorAll('.tool-tab');
+        const containers = document.querySelectorAll('.tool-container');
+        const title = document.getElementById('tool-title');
+
+        tabs.forEach(t => t.classList.remove('active'));
+        containers.forEach(c => c.classList.remove('active'));
+
+        const targetTab = document.querySelector(`.tool-tab[data-tool="${toolName}"]`);
+        const targetContainer = document.getElementById(`${toolName}-tool`);
+
+        if (targetTab && targetContainer) {
+            targetTab.classList.add('active');
+            targetContainer.classList.add('active');
+
+            // Update title based on tool
+            if (toolName === 'converter') {
+                title.textContent = 'OptiExchange Converter';
+            } else if (toolName === 'predictor') {
+                title.textContent = 'Currency Predictions';
+            } else if (toolName === 'trends') {
+                title.textContent = 'OptiExchange Charts';
+            }
+
+            if (toolName === 'trends') {
+                document.querySelector('.chart-container').classList.remove('visible');
+                if (chart) {
+                    chart.destroy();
+                    chart = null;
+                }
+            }
+        }
+    }
+
+    document.querySelectorAll('.tool-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            switchTool(tab.dataset.tool);
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const selectedTool = "{{ selected_tool or 'converter' }}";
+        switchTool(selectedTool);
+    });
+
+    const convertCurrency = async () => {
+        const amount = parseFloat(document.getElementById('amount').value);
+        const from = document.getElementById('from-currency').value;
+        const to = document.getElementById('to-currency').value;
+
+        if (!amount || !from || !to) {
+            document.getElementById('converted-amount').value = '';
+            document.getElementById('conversion-rate').textContent = '';
+            return;
+        }
+
+        try {
+            const response = await fetch(`https://api.frankfurter.app/latest?amount=${amount}&from=${from}&to=${to}`);
+            if (!response.ok) throw new Error('API request failed');
+            const data = await response.json();
+            const convertedValue = data.rates[to];
+            document.getElementById('converted-amount').value = convertedValue.toFixed(4);
+            document.getElementById('conversion-rate').textContent = 
+                `${amount} ${from} = ${convertedValue.toFixed(4)} ${to}`;
+        } catch (error) {
+            console.error("Conversion error:", error);
+            document.getElementById('conversion-rate').textContent = "Please select valid currencies";
+            document.getElementById('converted-amount').value = '';
+        }
+    };
+
+    document.getElementById('amount').addEventListener('input', convertCurrency);
+    document.getElementById('from-currency').addEventListener('change', convertCurrency);
+    document.getElementById('to-currency').addEventListener('change', convertCurrency);
+
+    document.getElementById('swap-currencies').addEventListener('click', () => {
+        const from = document.getElementById('from-currency');
+        const to = document.getElementById('to-currency');
+        if (from.value && to.value) {
+            [from.value, to.value] = [to.value, from.value];
+            convertCurrency();
+        }
+    });
+
+    const toCurrencyToggle = document.getElementById('chart-to-currency-toggle');
+    const toCurrencyMenu = document.getElementById('chart-to-currency-menu');
+    const toCurrencyOptions = toCurrencyMenu.querySelectorAll('li');
+    let selectedToCurrency = '';
+
+    toCurrencyToggle.addEventListener('click', () => {
+        toCurrencyMenu.classList.toggle('active');
+    });
+
+    toCurrencyOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            if (!option.classList.contains('disabled')) {
+                selectedToCurrency = option.dataset.value;
+                toCurrencyToggle.querySelector('span').textContent = option.textContent;
+                toCurrencyMenu.classList.remove('active');
+                document.querySelector('.chart-container').classList.remove('visible');
+                if (chart) {
+                    chart.destroy();
+                    chart = null;
+                }
+                const changeEvent = new Event('change');
+                toCurrencyToggle.dispatchEvent(changeEvent);
+            }
+        });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!toCurrencyToggle.contains(e.target) && !toCurrencyMenu.contains(e.target)) {
+            toCurrencyMenu.classList.remove('active');
+        }
+    });
+
+    let chart;
+
+    async function initChart() {
+        const fromCurrency = document.getElementById('chart-from-currency').value;
+        const toCurrency = selectedToCurrency;
+        const year = document.getElementById('chart-year').value;
+        const chartContainer = document.getElementById('historyChart').parentElement;
+        const canvas = document.getElementById('historyChart');
+
+        if (!canvas.getContext) {
+            chartContainer.innerHTML = '<p style="text-align: center; color: var(--text-light);">Chart canvas not found</p>';
+            return;
+        }
+
+        if (!fromCurrency || !toCurrency || !year) {
+            chartContainer.innerHTML = '<canvas id="historyChart"></canvas><p style="text-align: center; color: var(--text-light);">Please select both currencies and a year</p>';
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+            return;
+        }
+
+        if (fromCurrency === toCurrency) {
+            chartContainer.innerHTML = '<canvas id="historyChart"></canvas><p style="text-align: center; color: var(--text-light);">Please select different currencies</p>';
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+            return;
+        }
+
+        try {
+            const response = await fetch(`https://api.frankfurter.app/${year}-01-01..${year}-12-31?from=${fromCurrency}&to=${toCurrency}`);
+            
+            if (!response.ok) {
+                throw new Error(`API request failed with status ${response.status}`);
+            }
+            
+            const data = await response.json();
+
+            if (!data.rates || Object.keys(data.rates).length === 0) {
+                throw new Error('No data available for the selected currency pair and year');
+            }
+
+            const labels = Object.keys(data.rates).map(date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            const values = Object.values(data.rates).map(rate => rate[toCurrency]);
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            const ctx = canvas.getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${fromCurrency}/${toCurrency} Exchange Rate (${year})`,
+                        data: values,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: getComputedStyle(document.body).getPropertyValue('--text-light')
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 6,
+                                color: getComputedStyle(document.body).getPropertyValue('--text-light')
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                color: getComputedStyle(document.body).getPropertyValue('--text-light')
+                            }
+                        }
+                    }
+                }
+            });
+            chartContainer.classList.add('visible');
+        } catch (error) {
+            chartContainer.innerHTML = `<canvas id="historyChart"></canvas><p style="text-align: center; color: var(--text-light);">${error.message}</p>`;
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+            chartContainer.classList.add('visible');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        convertCurrency();
+
+        document.getElementById('update-chart').addEventListener('click', () => {
+            initChart();
+        });
+
+        document.getElementById('chart-from-currency').addEventListener('change', () => {
+            document.querySelector('.chart-container').classList.remove('visible');
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+        });
+
+        toCurrencyToggle.addEventListener('change', () => {
+            document.querySelector('.chart-container').classList.remove('visible');
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+        });
+
+        document.getElementById('chart-year').addEventListener('change', () => {
+            document.querySelector('.chart-container').classList.remove('visible');
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+        });
+
+        document.getElementById('date').value = '';
+    });
+</script>
+{% endblock %}

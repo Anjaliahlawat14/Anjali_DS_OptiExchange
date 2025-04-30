@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Set Currency Alert</h1>
+    
+    <form class="alert-form" method="POST" action="/alerts">
+        <div class="form-group">
+            <label for="email">Your Email:</label>
+            <input type="email" name="email" id="email" placeholder="Enter your email" required>
+        </div>
+
+        <div class="form-group">
+            <label for="currency">Currency:</label>
+            <div class="select-wrapper">
+                <select name="currency" id="currency" required>
+                    <option value="" disabled selected>Select a currency</option>
+                    {% for curr in currencies %}
+                        <option value="{{ curr }}">{{ curr }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Alert Type:</label>
+            <div class="radio-group">
+                <div class="radio-option">
+                    <input type="radio" id="above" name="alert_type" value="above" required>
+                    <label for="above">Above Rate</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="below" name="alert_type" value="below" required>
+                    <label for="below">Below Rate</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="threshold">Target Rate:</label>
+            <input type="number" step="0.0001" name="threshold" id="threshold" placeholder="e.g. 3.4" required>
+        </div>
+
+        <div class="form-group">
+            <label>Notification Method:</label>
+            <div class="radio-group">
+                <div class="radio-option">
+                    <input type="radio" id="in-app" name="notification_method" value="in_app" required>
+                    <label for="in-app">In-App</label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" id="email-notification" name="notification_method" value="email" required>
+                    <label for="email-notification">Email</label>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit">Set Alert</button>
+    </form>
+    
+    {% if message %}
+    <div class="alert-result" id="alert-result">
+        {{ message }}
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .alert-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 15px;
+    }
+
+    select,
+    input[type="email"],
+    input[type="number"],
+    button[type="submit"] {
+        width: 100%;
+        padding: 12px 15px;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        font-size: 15px;
+        background-color: var(--input-light);
+        color: var(--text-light);
+        box-sizing: border-box;
+        font-family: 'Inter', sans-serif;
+        transition: all 0.3s ease;
+        appearance: none;
+        -webkit-appearance: none;
+    }
+
+    body.dark select,
+    body.dark input[type="email"],
+    body.dark input[type="number"] {
+        background-color: var(--input-dark);
+        color: var(--text-dark);
+        border-color: #555;
+    }
+
+    ::placeholder {
+        color: var(--placeholder-light);
+        opacity: 1;
+    }
+
+    body.dark ::placeholder {
+        color: var(--placeholder-dark);
+    }
+
+    select:focus,
+    input[type="email"]:focus,
+    input[type="number"]:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    }
+
+    button[type="submit"] {
+        background-color: var(--accent);
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        margin-top: 10px;
+        transition: background-color 0.2s;
+    }
+
+    button[type="submit"]:hover {
+        background-color: #4338ca;
+    }
+
+    .alert-result {
+        padding: 15px;
+        border-radius: 10px;
+        margin-top: 25px;
+        text-align: center;
+        font-size: 16px;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+        animation: fadeIn 0.5s ease-out;
+        background-color: var(--success-bg-light);
+        color: var(--success-text-light);
+        border-left: 6px solid var(--success-text-light);
+    }
+
+    body.dark .alert-result {
+        background-color: var(--success-bg-dark);
+        color: var(--success-text-dark);
+        border-color: var(--success-text-dark);
+    }
+
+    .radio-group {
+        display: flex;
+        gap: 20px;
+        margin-top: 8px;
+    }
+
+    .radio-option {
+        display: flex;
+        align-items: center;
+    }
+
+    .radio-option input[type="radio"] {
+        margin: 0;
+        margin-right: 8px;
+        width: 16px;
+        height: 16px;
+        accent-color: var(--accent);
+    }
+
+    .radio-option label {
+        margin-bottom: 0;
+        font-weight: normal;
+        cursor: pointer;
+        color: var(--text-light);
+        transition: all 0.3s ease;
+    }
+
+    body.dark .radio-option label {
+        color: var(--text-dark);
+    }
+
+    .select-wrapper {
+        position: relative;
+    }
+
+    .select-wrapper::after {
+        content: "▼";
+        font-size: 12px;
+        top: 50%;
+        right: 15px;
+        transform: translateY(-50%);
+        position: absolute;
+        color: var(--text-light);
+        pointer-events: none;
+    }
+
+    body.dark .select-wrapper::after {
+        color: var(--text-dark);
+    }
+
+    option[value=""][disabled] {
+        display: none;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Clear radio button selections
+        document.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.checked = false;
+        });
+
+        // Auto-hide alert message after 5 seconds
+        const alertResult = document.getElementById('alert-result');
+        if (alertResult) {
+            setTimeout(() => {
+                alertResult.style.opacity = '0';
+                setTimeout(() => alertResult.remove(), 300);
+            }, 5000);
+        }
+
+        // Form submission handling
+        const form = document.querySelector('.alert-form');
+        form.addEventListener('submit', function(e) {
+            // You can add form validation here if needed
+        });
+    });
+</script>
+{% endblock %}
