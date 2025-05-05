@@ -5,13 +5,13 @@
     
     <div class="tool-selector">
         <button class="tool-tab {% if selected_tool == 'converter' %}active{% else %}inactive{% endif %}" data-tool="converter">
-            <i class="fas fa-calculator"></i> Converter
+            <i class="fas fa-calculator"></i> <span class="tab-text">Converter</span>
         </button>
         <button class="tool-tab {% if selected_tool == 'predictor' %}active{% else %}inactive{% endif %}" data-tool="predictor">
-            <i class="fas fa-chart-line"></i> Predictor
+            <i class="fas fa-chart-line"></i> <span class="tab-text">Predictor</span>
         </button>
         <button class="tool-tab {% if selected_tool == 'trends' %}active{% else %}inactive{% endif %}" data-tool="trends">
-            <i class="fas fa-history"></i> Trends
+            <i class="fas fa-history"></i> <span class="tab-text">Trends</span>
         </button>
     </div>
     
@@ -60,11 +60,13 @@
             <div class="form-group">
                 <label for="date">Select Date:</label>
                 <div class="date-wrapper">
-                    <input type="date" id="date" name="date" required style="-webkit-appearance: none; -moz-appearance: none; appearance: none;">
+                    <input type="date" id="date" name="date" required>
                 </div>
             </div>
             
-            <input type="submit" value="Predict Rate" class="predict-rate-btn">
+            <button type="submit" class="predict-rate-btn">
+                <i class="fas fa-chart-line"></i> Predict Rate
+            </button>
         </form>
         
         {% if request.method == 'POST' and prediction %}
@@ -89,16 +91,13 @@
         
         <div class="form-group">
             <label for="chart-to-currency">To Currency:</label>
-            <div class="custom-select">
-                <div class="custom-select-toggle" id="chart-to-currency-toggle">
-                    <span>Select Currency</span>
-                </div>
-                <ul class="custom-select-menu" id="chart-to-currency-menu">
-                    <li class="disabled" data-value="">Select Currency</li>
+            <div class="select-wrapper">
+                <select id="chart-to-currency" class="converter-select">
+                    <option value="" disabled selected>Select Currency</option>
                     {% for curr in currencies %}
-                        <li data-value="{{ curr }}">{{ curr }}</li>
+                        <option value="{{ curr }}">{{ curr }}</option>
                     {% endfor %}
-                </ul>
+                </select>
             </div>
         </div>
         
@@ -145,7 +144,7 @@
     }
 
     .tool-tab {
-        padding: 10px 20px;
+        padding: 10px 15px;
         background: var(--tab-inactive);
         border-radius: 8px;
         cursor: pointer;
@@ -159,6 +158,10 @@
         max-width: 150px;
         transform: translateY(0);
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
     }
 
     .tool-tab:hover {
@@ -192,6 +195,10 @@
         display: block;
     }
 
+    .tab-text {
+        display: inline;
+    }
+
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(5px); }
         to { opacity: 1; transform: translateY(0); }
@@ -209,10 +216,11 @@
         padding: 12px 15px;
         border: 1px solid #d1d5db;
         border-radius: 8px;
-        font-size: 15px;
+        font-size: 16px;
         background-color: var(--input-light);
         color: var(--text-light);
         transition: all 0.3s ease;
+        min-height: 44px;
     }
 
     body.dark .converter-input {
@@ -226,13 +234,14 @@
         padding: 12px 15px;
         border: 1px solid #d1d5db;
         border-radius: 8px;
-        font-size: 15px;
+        font-size: 16px;
         background-color: var(--input-light);
         color: var(--text-light);
         appearance: none;
         -webkit-appearance: none;
         -moz-appearance: none;
         transition: all 0.3s ease;
+        min-height: 44px;
     }
 
     body.dark .converter-select {
@@ -255,8 +264,8 @@
         background: var(--accent);
         color: white;
         border: none;
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
         cursor: pointer;
         display: flex;
@@ -265,6 +274,7 @@
         margin: 5px auto;
         transition: all 0.3s ease;
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        -webkit-tap-highlight-color: transparent;
     }
 
     .converter-swap:hover {
@@ -274,52 +284,6 @@
 
     .form-group {
         margin-bottom: 18px;
-    }
-
-    label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: var(--text-light);
-        font-size: 0.95rem;
-    }
-
-    body.dark label {
-        color: var(--text-dark);
-    }
-
-    select, input[type="date"] {
-        width: 100%;
-        padding: 12px 15px;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 15px;
-        background-color: var(--input-light);
-        color: var(--text-light);
-        box-sizing: border-box;
-        transition: all 0.3s ease;
-        appearance: none;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-    }
-
-    body.dark select, body.dark input[type="date"] {
-        background-color: var(--input-dark);
-        color: var(--text-dark);
-        border-color: #555;
-    }
-
-    .predict-rate-btn {
-        width: 100%;
-        padding: 12px 15px;
-        background-color: var(--accent);
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
-        border: none;
-        margin-top: 10px;
-        border-radius: 8px;
-        font-size: 15px;
     }
 
     .select-wrapper, .date-wrapper {
@@ -341,10 +305,6 @@
         color: var(--text-dark);
     }
 
-    .date-wrapper::after {
-        display: none;
-    }
-
     .result {
         background-color: #d1fae5;
         padding: 15px;
@@ -361,92 +321,6 @@
         color: #d1fae5;
     }
 
-    .custom-select {
-        position: relative;
-        width: 100%;
-    }
-
-    .custom-select-toggle {
-        padding: 12px 15px;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 15px;
-        background-color: var(--input-light);
-        color: var(--text-light);
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        transition: all 0.3s ease;
-    }
-
-    body.dark .custom-select-toggle {
-        background-color: var(--input-dark);
-        color: var(--text-dark);
-        border-color: #555;
-    }
-
-    .custom-select-toggle::after {
-        content: "▼";
-        font-size: 12px;
-        color: var(--text-light);
-    }
-
-    body.dark .custom-select-toggle::after {
-        color: var(--text-dark);
-    }
-
-    .custom-select-menu {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background-color: var(--input-light);
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        max-height: 200px;
-        overflow-y: auto;
-        z-index: 1000;
-        display: none;
-        margin-top: 5px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-
-    body.dark .custom-select-menu {
-        background-color: var(--input-dark);
-        border-color: #555;
-    }
-
-    .custom-select-menu.active {
-        display: block;
-    }
-
-    .custom-select-menu li {
-        padding: 10px 15px;
-        list-style: none;
-        cursor: pointer;
-        font-size: 15px;
-        color: var(--text-light);
-        transition: background 0.2s ease;
-    }
-
-    body.dark .custom-select-menu li {
-        color: var(--text-dark);
-    }
-
-    .custom-select-menu li:hover {
-        background: rgba(79, 70, 229, 0.1);
-    }
-
-    .custom-select-menu li.disabled {
-        color: var(--placeholder-light);
-        cursor: not-allowed;
-    }
-
-    body.dark .custom-select-menu li.disabled {
-        color: var(--placeholder-dark);
-    }
-
     .chart-container {
         height: 280px;
         margin-top: 15px;
@@ -461,7 +335,7 @@
         background: var(--accent);
         color: white;
         border: none;
-        padding: 10px 15px;
+        padding: 12px 15px;
         border-radius: 8px;
         cursor: pointer;
         font-weight: 600;
@@ -471,12 +345,25 @@
         justify-content: center;
         gap: 8px;
         width: 100%;
+        min-height: 44px;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .update-chart-btn:hover {
         background: #4338ca;
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .update-chart-btn:active {
+        transform: translateY(0);
+    }
+
+    .predict-rate-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
     }
 
     @media (max-width: 768px) {
@@ -501,12 +388,24 @@
     }
 
     @media (max-width: 480px) {
-        .converter-row {
+        .converter-row, .form-group {
             flex-direction: column;
         }
-
+        
         .converter-input, .converter-select {
             width: 100%;
+        }
+        
+        .tab-text {
+            display: none;
+        }
+        
+        .tool-tab {
+            padding: 10px;
+        }
+        
+        .tool-tab i {
+            margin-right: 0;
         }
     }
 </style>
@@ -599,43 +498,11 @@
         }
     });
 
-    const toCurrencyToggle = document.getElementById('chart-to-currency-toggle');
-    const toCurrencyMenu = document.getElementById('chart-to-currency-menu');
-    const toCurrencyOptions = toCurrencyMenu.querySelectorAll('li');
-    let selectedToCurrency = '';
-
-    toCurrencyToggle.addEventListener('click', () => {
-        toCurrencyMenu.classList.toggle('active');
-    });
-
-    toCurrencyOptions.forEach(option => {
-        option.addEventListener('click', () => {
-            if (!option.classList.contains('disabled')) {
-                selectedToCurrency = option.dataset.value;
-                toCurrencyToggle.querySelector('span').textContent = option.textContent;
-                toCurrencyMenu.classList.remove('active');
-                document.querySelector('.chart-container').classList.remove('visible');
-                if (chart) {
-                    chart.destroy();
-                    chart = null;
-                }
-                const changeEvent = new Event('change');
-                toCurrencyToggle.dispatchEvent(changeEvent);
-            }
-        });
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!toCurrencyToggle.contains(e.target) && !toCurrencyMenu.contains(e.target)) {
-            toCurrencyMenu.classList.remove('active');
-        }
-    });
-
     let chart;
 
     async function initChart() {
         const fromCurrency = document.getElementById('chart-from-currency').value;
-        const toCurrency = selectedToCurrency;
+        const toCurrency = document.getElementById('chart-to-currency').value;
         const year = document.getElementById('chart-year').value;
         const chartContainer = document.getElementById('historyChart').parentElement;
         const canvas = document.getElementById('historyChart');
@@ -764,7 +631,7 @@
             }
         });
 
-        toCurrencyToggle.addEventListener('change', () => {
+        document.getElementById('chart-to-currency').addEventListener('change', () => {
             document.querySelector('.chart-container').classList.remove('visible');
             if (chart) {
                 chart.destroy();

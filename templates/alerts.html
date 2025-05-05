@@ -54,7 +54,9 @@
             </div>
         </div>
 
-        <button type="submit">Set Alert</button>
+        <button type="submit" class="alert-submit-btn">
+            <i class="fas fa-bell"></i> Set Alert
+        </button>
     </form>
     
     {% if message %}
@@ -86,7 +88,7 @@
         padding: 12px 15px;
         border: 1px solid #d1d5db;
         border-radius: 10px;
-        font-size: 15px;
+        font-size: 16px;
         background-color: var(--input-light);
         color: var(--text-light);
         box-sizing: border-box;
@@ -94,6 +96,7 @@
         transition: all 0.3s ease;
         appearance: none;
         -webkit-appearance: none;
+        min-height: 44px;
     }
 
     body.dark select,
@@ -121,7 +124,7 @@
         box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
     }
 
-    button[type="submit"] {
+    .alert-submit-btn {
         background-color: var(--accent);
         color: white;
         font-weight: 600;
@@ -129,9 +132,15 @@
         border: none;
         margin-top: 10px;
         transition: background-color 0.2s;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        -webkit-tap-highlight-color: transparent;
     }
 
-    button[type="submit"]:hover {
+    .alert-submit-btn:hover {
         background-color: #4338ca;
     }
 
@@ -219,6 +228,17 @@
             transform: translateY(0);
         }
     }
+
+    @media (max-width: 768px) {
+        .radio-group {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .alert-submit-btn {
+            padding: 15px;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -238,12 +258,6 @@
                 setTimeout(() => alertResult.remove(), 300);
             }, 5000);
         }
-
-        // Form submission handling
-        const form = document.querySelector('.alert-form');
-        form.addEventListener('submit', function(e) {
-            // You can add form validation here if needed
-        });
     });
 </script>
 {% endblock %}

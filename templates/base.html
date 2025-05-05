@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}OptiExchange{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
@@ -27,6 +27,9 @@
             --success-text-dark: #bbf7d0;
             --footer-bg-light: var(--accent);
             --footer-bg-dark: #1a1a2e;
+            --placeholder-light: #9ca3af;
+            --placeholder-dark: #6b7280;
+            --tab-inactive: #e5e7eb;
         }
 
         body {
@@ -46,7 +49,7 @@
 
         .app-navigation {
             background: var(--accent);
-            padding: 15px;
+            padding: 10px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -57,17 +60,24 @@
             z-index: 1000;
         }
 
-        .nav-center {
-            display: flex;
-            justify-content: center;
-            flex-grow: 1;
+        .nav-mobile-toggle {
+            display: none;
+            font-size: 1.5rem;
+            color: white;
+            cursor: pointer;
         }
 
         .app-name {
             font-weight: 700;
             font-size: 1.2rem;
             color: white;
-            margin-left: 20px;
+            margin-left: 10px;
+        }
+
+        .nav-center {
+            display: flex;
+            justify-content: center;
+            flex-grow: 1;
         }
 
         .nav-links {
@@ -83,6 +93,8 @@
             padding: 8px 16px;
             border-radius: 8px;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
         }
 
         .nav-link:hover {
@@ -95,6 +107,10 @@
 
         .nav-link i {
             margin-right: 8px;
+        }
+
+        .nav-text {
+            display: inline;
         }
 
         .container {
@@ -152,27 +168,37 @@
 
         input[type="text"],
         input[type="email"],
-        input[type="password"] {
+        input[type="password"],
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
             width: 100%;
             padding: 12px 15px;
             border: 1px solid #d1d5db;
             border-radius: 10px;
-            font-size: 15px;
+            font-size: 16px;
             background-color: var(--input-light);
             color: var(--text-light);
             box-sizing: border-box;
             transition: all 0.3s ease;
+            min-height: 44px;
         }
 
         body.dark input[type="text"],
         body.dark input[type="email"],
-        body.dark input[type="password"] {
+        body.dark input[type="password"],
+        body.dark input[type="number"],
+        body.dark input[type="date"],
+        body.dark select,
+        body.dark textarea {
             background-color: var(--input-dark);
             color: var(--text-dark);
             border-color: #555;
         }
 
-        button[type="submit"] {
+        button[type="submit"],
+        button {
             width: 100%;
             padding: 12px 15px;
             background-color: var(--accent);
@@ -183,10 +209,18 @@
             margin-top: 10px;
             transition: background-color 0.2s;
             border-radius: 10px;
+            min-height: 44px;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        button[type="submit"]:hover {
+        button[type="submit"]:hover,
+        button:hover {
             background-color: #4338ca;
+        }
+
+        button:active {
+            transform: scale(0.98);
+            opacity: 0.9;
         }
 
         .flash-messages {
@@ -248,7 +282,7 @@
         .user-nav {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
         }
 
         .user-nav span {
@@ -259,13 +293,29 @@
         .user-nav a {
             color: white;
             text-decoration: none;
-            padding: 8px 16px;
+            padding: 8px 12px;
             border-radius: 8px;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
         }
 
         .user-nav a:hover {
             background: rgba(255,255,255,0.2);
+        }
+
+        .user-nav a i {
+            margin-right: 5px;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 8px;
+            -webkit-tap-highlight-color: transparent;
         }
 
         @keyframes slideIn {
@@ -322,35 +372,74 @@
             opacity: 0.8;
         }
 
-        .toggle-btn {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: 1.2rem;
-            margin-right: 20px;
+        /* Mobile Styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                width: 95%;
+                margin: 15px auto;
+            }
+            
+            .nav-mobile-toggle {
+                display: block;
+            }
+            
+            .nav-center {
+                position: fixed;
+                top: 60px;
+                left: -100%;
+                width: 80%;
+                height: calc(100vh - 60px);
+                background: var(--accent);
+                transition: all 0.3s ease;
+                z-index: 999;
+                padding: 20px;
+                box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+            }
+            
+            .nav-center.active {
+                left: 0;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .nav-link {
+                padding: 12px;
+                border-radius: 6px;
+            }
+            
+            .user-nav {
+                margin-left: auto;
+            }
+            
+            .user-nav span {
+                display: none;
+            }
+            
+            .user-nav a span {
+                display: none;
+            }
         }
 
-        @media (max-width: 768px) {
-            .app-navigation {
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .form-group, .converter-row {
                 flex-direction: column;
-                padding: 10px;
+            }
+            
+            .radio-group {
+                flex-direction: column;
                 gap: 10px;
             }
-
-            .app-name {
-                margin-left: 0;
-                margin-bottom: 10px;
-            }
-
-            .nav-links {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            .toggle-btn {
-                margin-right: 0;
-                margin-top: 10px;
+            
+            input, select, button {
+                width: 100% !important;
             }
         }
     </style>
@@ -358,21 +447,42 @@
 </head>
 <body>
     <nav class="app-navigation">
+        <div class="nav-mobile-toggle" id="mobile-menu-toggle">
+            <i class="fas fa-bars"></i>
+        </div>
         <span class="app-name">OptiExchange</span>
-        <div class="nav-center">
+        <div class="nav-center" id="nav-center">
             <div class="nav-links">
-                <a href="{{ url_for('index') }}" class="nav-link {% if request.path == '/' %}active{% endif %}"><i class="fas fa-home"></i> Home</a>
-                <a href="{{ url_for('alerts') }}" class="nav-link {% if request.path == '/alerts' %}active{% endif %}"><i class="fas fa-bell"></i> Alerts</a>
-                <a href="{{ url_for('find_exchanges') }}" class="nav-link {% if request.path == '/find_exchanges' %}active{% endif %}"><i class="fas fa-exchange-alt"></i> Find Exchanges</a>
+                <a href="{{ url_for('index') }}" class="nav-link {% if request.path == '/' %}active{% endif %}">
+                    <i class="fas fa-home"></i>
+                    <span class="nav-text">Home</span>
+                </a>
+                <a href="{{ url_for('alerts') }}" class="nav-link {% if request.path == '/alerts' %}active{% endif %}">
+                    <i class="fas fa-bell"></i>
+                    <span class="nav-text">Alerts</span>
+                </a>
+                <a href="{{ url_for('find_exchanges') }}" class="nav-link {% if request.path == '/find_exchanges' %}active{% endif %}">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span class="nav-text">Find Exchanges</span>
+                </a>
             </div>
         </div>
         <div class="user-nav">
             {% if current_user.is_authenticated %}
                 <span>Welcome, {{ current_user.username }}</span>
-                <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                <a href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
             {% else %}
-                <a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> Login</a>
-                <a href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> Register</a>
+                <a href="{{ url_for('login') }}">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Login</span>
+                </a>
+                <a href="{{ url_for('register') }}">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Register</span>
+                </a>
             {% endif %}
             <button class="toggle-btn" onclick="toggleDarkMode()">
                 <i class="fas fa-moon"></i>
@@ -439,8 +549,25 @@
                     setTimeout(() => msg.remove(), 300);
                 }, 5000);
             });
+
+            // Mobile menu toggle
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const navCenter = document.getElementById('nav-center');
+            
+            if (mobileMenuToggle && navCenter) {
+                mobileMenuToggle.addEventListener('click', () => {
+                    navCenter.classList.toggle('active');
+                });
+            }
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.app-navigation') && navCenter.classList.contains('active')) {
+                    navCenter.classList.remove('active');
+                }
+            });
         });
     </script>
     {% block extra_js %}{% endblock %}
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'937d519058ffadd2',t:'MTc0NTkxNDE4MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9380a255ffc8bfc0',t:'MTc0NTk0ODk0Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
