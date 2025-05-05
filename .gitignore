@@ -1,0 +1,47 @@
+ 
+# Python 
+__pycache__/ 
+*.py[cod] 
+*.pyo 
+*.pyd 
+.Python 
+pip-log.txt 
+pip-delete-this-directory.txt 
+ 
+# Flask 
+instance/ 
+*.db 
+ 
+# Environment variables 
+.env 
+.env.local 
+.env.development.local 
+.env.test.local 
+.env.production.local 
+ 
+# Virtual environments 
+venv/ 
+env/ 
+.venv/ 
+ 
+# IDEs and editors 
+.vscode/ 
+.idea/ 
+*.sublime-project 
+*.sublime-workspace 
+ 
+# Operating system files 
+.DS_Store 
+Thumbs.db 
+ 
+# Documentation and large files 
+*.pdf 
+*.docx 
+*.doc 
+*.zip 
+# Allow specific PDF and DOCX files 
+!CERTIFICATE_Group9.BTech CSE(DS).pdf 
+!REPORT.docx 
+ 
+# Logs 
+*.log 
