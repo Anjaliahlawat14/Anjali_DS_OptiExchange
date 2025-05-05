@@ -10,7 +10,7 @@ import random
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Flask-Mail configuration
@@ -20,7 +20,7 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = 'your-email@gmail.com'  # Replace with your email
 app.config['MAIL_PASSWORD'] = 'your-app-password'     # Replace with app password
-app.config['MAIL_DEFAULT_SENDER'] = ('Your App Name', 'your-email@gmail.com')
+app.config['MAIL_DEFAULT_SENDER'] = ('OptiExchange', 'your-email@gmail.com')
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -238,4 +238,5 @@ def profile():
     return render_template('profile.html')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
