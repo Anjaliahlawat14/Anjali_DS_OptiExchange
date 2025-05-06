@@ -20,7 +20,7 @@ OptiExchange is a lightweight web application that predicts currency exchange ra
 [Click here to view the Figma Prototype](https://www.figma.com/proto/v8HIb3K6mNRuX1tMUBt1SD/optiexchange?page-id=1649%3A6986&node-id=1661-6433&p=f&viewport=182%2C105%2C0.07&t=xXYblK55r0BTlEtO-1&scaling=scale-down&content-scaling=fixed&starting-point-node-id=1649%3A13239)
 
 # DEPLOYMENT
-Current URL: https://optiexchange.onrender.com
+https://optiexchange.onrender.com
 - Deployed using Render’s free tier with a PostgreSQL database (optiexchange-db).
 
 # TECHNOLOGIES USED
