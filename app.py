@@ -7,11 +7,8 @@ import os
 from datetime import datetime
 from flask_mail import Mail, Message
 import random
-import json
 
-
-
-import os
+# ============ INITIALIZATION WITH ERROR HANDLING ============
 import sys
 
 # Print debug info (these will appear in Render logs)
@@ -27,8 +24,6 @@ if not os.environ.get('DATABASE_URL'):
 if not os.environ.get('SECRET_KEY'):
     print("WARNING: SECRET_KEY not set, using default (not secure for production)", file=sys.stderr)
     os.environ['SECRET_KEY'] = 'dev-secret-key-change-in-production'
-
-
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
@@ -52,7 +47,7 @@ mail = Mail(app)
 # Supported currencies
 currencies = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'INR', 'SGD']
 
-# User model
+# ============ DATABASE MODEL ============
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
@@ -186,8 +181,57 @@ def get_trends():
         return jsonify({'error': f'Error fetching trends: {str(e)}'}), 500
 
 # ============ FIX 3: Exchange Finder API with Fallback ============
+def get_fallback_exchanges(lat, lon):
+    """Provide fallback exchange locations when API fails"""
+    lat = float(lat) if lat else 40.7128
+    lon = float(lon) if lon else -74.0060
+    
+    # Create sample exchanges around the given location
+    return [
+        {
+            'name': 'Central Currency Exchange',
+            'lat': lat + 0.002,
+            'lon': lon + 0.001,
+            'address': 'Downtown Financial District, Main Street',
+            'opening_hours': 'Mon-Fri 9:00-17:00, Sat 10:00-14:00',
+            'phone': '+1 (555) 123-4567'
+        },
+        {
+            'name': 'International Money Transfer',
+            'lat': lat - 0.0015,
+            'lon': lon + 0.0025,
+            'address': 'City Shopping Mall, Level 2, Unit 45',
+            'opening_hours': 'Mon-Sat 10:00-20:00, Sun 11:00-18:00',
+            'phone': '+1 (555) 234-5678'
+        },
+        {
+            'name': 'Global Exchange Services',
+            'lat': lat + 0.001,
+            'lon': lon - 0.002,
+            'address': 'International Airport, Terminal 3, Arrivals Hall',
+            'opening_hours': 'Open 24 hours, 7 days a week',
+            'phone': '+1 (555) 345-6789'
+        },
+        {
+            'name': 'FastCash Currency',
+            'lat': lat - 0.002,
+            'lon': lon - 0.001,
+            'address': 'Metro Plaza, Ground Floor, Shop G12',
+            'opening_hours': 'Mon-Fri 9:30-18:30, Sat 10:00-16:00',
+            'phone': '+1 (555) 456-7890'
+        },
+        {
+            'name': 'Premier Exchange Bureau',
+            'lat': lat + 0.0025,
+            'lon': lon - 0.0015,
+            'address': 'Business Tower, First Floor',
+            'opening_hours': 'Mon-Fri 9:00-18:00, Closed weekends',
+            'phone': '+1 (555) 567-8901'
+        }
+    ]
+
 @app.route('/api/exchanges', methods=['GET', 'POST'])
-def find_exchanges():
+def api_find_exchanges():
     """Find currency exchange locations near a given location"""
     try:
         if request.method == 'POST':
@@ -209,7 +253,6 @@ def find_exchanges():
         radius = float(radius)
         
         # Overpass API query to find currency exchange services
-        # Using multiple tags to find exchange locations
         overpass_query = f"""
         [out:json];
         (
@@ -284,7 +327,7 @@ def find_exchanges():
             
             return jsonify({
                 'success': True,
-                'exchanges': unique_exchanges[:10],  # Limit to 10 results
+                'exchanges': unique_exchanges[:10],
                 'count': len(unique_exchanges[:10])
             })
         else:
@@ -312,60 +355,10 @@ def find_exchanges():
             'success': True,
             'exchanges': fallback,
             'count': len(fallback),
-            'note': f'Using sample data (service temporarily unavailable)'
+            'note': 'Using sample data (service temporarily unavailable)'
         })
 
-def get_fallback_exchanges(lat, lon):
-    """Provide fallback exchange locations when API fails"""
-    lat = float(lat) if lat else 40.7128
-    lon = float(lon) if lon else -74.0060
-    
-    # Create sample exchanges around the given location
-    return [
-        {
-            'name': 'Central Currency Exchange',
-            'lat': lat + 0.002,
-            'lon': lon + 0.001,
-            'address': 'Downtown Financial District, Main Street',
-            'opening_hours': 'Mon-Fri 9:00-17:00, Sat 10:00-14:00',
-            'phone': '+1 (555) 123-4567'
-        },
-        {
-            'name': 'International Money Transfer',
-            'lat': lat - 0.0015,
-            'lon': lon + 0.0025,
-            'address': 'City Shopping Mall, Level 2, Unit 45',
-            'opening_hours': 'Mon-Sat 10:00-20:00, Sun 11:00-18:00',
-            'phone': '+1 (555) 234-5678'
-        },
-        {
-            'name': 'Global Exchange Services',
-            'lat': lat + 0.001,
-            'lon': lon - 0.002,
-            'address': 'International Airport, Terminal 3, Arrivals Hall',
-            'opening_hours': 'Open 24 hours, 7 days a week',
-            'phone': '+1 (555) 345-6789'
-        },
-        {
-            'name': 'FastCash Currency',
-            'lat': lat - 0.002,
-            'lon': lon - 0.001,
-            'address': 'Metro Plaza, Ground Floor, Shop G12',
-            'opening_hours': 'Mon-Fri 9:30-18:30, Sat 10:00-16:00',
-            'phone': '+1 (555) 456-7890'
-        },
-        {
-            'name': 'Premier Exchange Bureau',
-            'lat': lat + 0.0025,
-            'lon': lon - 0.0015,
-            'address': 'Business Tower, First Floor',
-            'opening_hours': 'Mon-Fri 9:00-18:00, Closed weekends',
-            'phone': '+1 (555) 567-8901'
-        }
-    ]
-
-# ============ Original Routes (Preserved) ============
-
+# ============ PREDICTION HELPER FUNCTION ============
 def get_prediction(currency, date):
     try:
         # Convert date string to datetime for validation
@@ -405,6 +398,7 @@ def get_prediction(currency, date):
         app.logger.error(f"Prediction error: {str(e)}")
         return None
 
+# ============ PAGE ROUTES ============
 @app.route('/')
 def index():
     return render_template('index.html', currencies=currencies, prediction=None, selected_currency=None, selected_tool='converter')
@@ -531,7 +525,8 @@ def alerts():
                          message_type=message_type)
 
 @app.route('/find_exchanges')
-def find_exchanges():
+def exchange_finder_page():
+    """Page for finding exchange providers"""
     return render_template('exchange_finder.html')
 
 @app.route('/api/nearby_exchanges')
@@ -558,6 +553,7 @@ def nearby_exchanges():
 def profile():
     return render_template('profile.html')
 
+# ============ RUN THE APP ============
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
