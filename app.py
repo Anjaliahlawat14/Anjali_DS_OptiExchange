@@ -47,6 +47,13 @@ mail = Mail(app)
 # Supported currencies
 currencies = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'INR', 'SGD']
 
+# Default fallback rates for when API fails
+DEFAULT_RATES = {
+    'USD': 1.0, 'EUR': 0.92, 'GBP': 0.79, 'JPY': 154.5,
+    'AUD': 1.51, 'CAD': 1.37, 'CHF': 0.91, 'CNY': 7.24,
+    'INR': 83.5, 'SGD': 1.35
+}
+
 # ============ DATABASE MODEL ============
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -338,7 +345,7 @@ def nearby_exchanges_api():
             'note': 'Using sample exchange locations'
         })
 
-# ============ PREDICTION HELPER FUNCTION ============
+# ============ FIX 4: PREDICTION FUNCTION WITH FALLBACK ============
 def get_prediction(currency, date):
     try:
         # Convert date string to datetime for validation
@@ -357,7 +364,9 @@ def get_prediction(currency, date):
                     raise Exception(f"API returned status {response.status_code}")
             except Exception as e:
                 app.logger.error(f"Frankfurter API error: {str(e)}")
-                return None
+                # Fallback to default rate
+                rate = DEFAULT_RATES.get(currency, 1.0)
+                return f"1 USD = {rate:.4f} {currency} (estimated - using fallback data)"
         
         # For future dates, use a mock prediction based on the latest rate
         try:
@@ -368,12 +377,17 @@ def get_prediction(currency, date):
                 # Simulate a prediction by adding slight variation
                 variation = random.uniform(-0.05, 0.05)  # ±5% variation
                 predicted_rate = latest_rate * (1 + variation)
-                return f"1 USD = {predicted_rate:.4f} {currency} (predicted)"
+                return f"1 USD = {predicted_rate:.4f} {currency} (predicted for {date})"
             else:
                 raise Exception(f"API returned status {response.status_code}")
         except Exception as e:
             app.logger.error(f"Frankfurter API error for latest rate: {str(e)}")
-            return None
+            # Fallback prediction without live API
+            base_rate = DEFAULT_RATES.get(currency, 1.0)
+            variation = random.uniform(-0.05, 0.05)
+            predicted_rate = base_rate * (1 + variation)
+            return f"1 USD = {predicted_rate:.4f} {currency} (predicted for {date} - using fallback data)"
+            
     except Exception as e:
         app.logger.error(f"Prediction error: {str(e)}")
         return None
@@ -398,8 +412,10 @@ def predict():
     
     prediction = get_prediction(currency, date)
     if not prediction:
-        flash('Failed to generate prediction. Please try again.', 'error')
-        return render_template('index.html', currencies=currencies, prediction=None, selected_currency=None, selected_tool='predictor')
+        flash('Failed to generate prediction. Using estimated rates.', 'error')
+        # Try one more time with fallback only
+        base_rate = DEFAULT_RATES.get(currency, 1.0)
+        prediction = f"1 USD = {base_rate:.4f} {currency} (estimated rate)"
     
     return render_template('index.html', currencies=currencies, prediction=prediction, selected_currency=currency, selected_tool='predictor')
 
