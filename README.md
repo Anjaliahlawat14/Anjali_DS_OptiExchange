@@ -4,12 +4,6 @@
 # PROJECT TITLE 
 **OptiExchange**
 
-# TEAM MEMBERS  
-- Anjali (2301420021)  
-- Jigyasa Singh (2301420032)  
-- Bhuveeta Sarohi (2301420011)  
-- Shubham Dey (2301420012)
-
 # PROJECT DESCRIPTION 
 OptiExchange is a lightweight web application that predicts currency exchange rates for any selected date. It supports major currencies like USD, EUR, GBP, and JPY with a clean, responsive interface featuring dark/light mode. The app calculates predictions client-side using market trend algorithms to estimate historical, current, and future exchange rates. Designed for travelers and forex enthusiasts, it provides quick rate checks through a simple one-page form. Built with HTML, CSS, and vanilla JavaScript, this frontend demo simulates realistic rate fluctuations based on volatility patterns.
 
