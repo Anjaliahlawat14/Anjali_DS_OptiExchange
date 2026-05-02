@@ -1,113 +1,122 @@
 {% extends "base.html" %}
 
-{% block title %}Exchange Finder - OptiExchange{% endblock %}
+{% block title %}Find Exchange Providers - OptiExchange{% endblock %}
 
 {% block content %}
-<h1>🏦 Find Exchange Providers</h1>
-<p style="text-align: center; margin-bottom: 20px;">Locate currency exchange services near you</p>
+<h1>Exchange Providers</h1>
 
 <div class="form-group">
-    <label for="location-search">📍 Search by Location:</label>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <input type="text" id="location-search" class="converter-input" placeholder="Enter city, address, or landmark..." style="flex: 3; min-width: 200px;">
-        <button id="search-location-btn" class="update-chart-btn" style="flex: 1; min-width: 100px;">
+    <label for="location">📍 Search Location:</label>
+    <div style="display: flex; gap: 10px;">
+        <input type="text" id="location" class="converter-input" placeholder="Enter city, address, or landmark..." style="flex: 3;">
+        <button id="search-btn" class="update-chart-btn" style="flex: 1; margin: 0;">
             <i class="fas fa-search"></i> Search
         </button>
     </div>
 </div>
 
 <div class="form-group">
-    <button id="use-current-location" class="update-chart-btn" style="background: #10b981;">
+    <button id="current-location-btn" class="update-chart-btn" style="background: #10b981;">
         <i class="fas fa-location-dot"></i> Use My Current Location
     </button>
 </div>
 
-<div id="loading-spinner" style="display: none; text-align: center; padding: 40px;">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
-    <p style="margin-top: 15px;">Searching for exchange providers...</p>
-</div>
+<div id="map" style="height: 400px; margin-top: 20px; border-radius: 8px; display: none;"></div>
 
-<div id="exchange-map" style="height: 400px; margin-top: 20px; border-radius: 8px; display: none;"></div>
-
-<div id="exchange-results" style="margin-top: 20px;"></div>
+<div id="results" style="margin-top: 20px;"></div>
 {% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-    .exchange-card {
-        background: var(--input-light);
-        border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 12px;
-        border: 1px solid #d1d5db;
-        transition: all 0.3s ease;
-    }
-    
-    body.dark .exchange-card {
-        background: var(--input-dark);
-        border-color: #555;
-    }
-    
-    .exchange-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    
-    .exchange-name {
-        font-weight: 700;
-        color: var(--accent);
-        margin-bottom: 10px;
-        font-size: 1.1rem;
-    }
-    
-    .exchange-detail {
-        font-size: 0.9rem;
-        margin: 8px 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .exchange-detail i {
-        width: 20px;
-        color: var(--accent);
-    }
-    
-    .spinner-border {
-        width: 3rem;
-        height: 3rem;
-        border: 0.25em solid currentColor;
-        border-right-color: transparent;
-        border-radius: 50%;
-        animation: spinner-border 0.75s linear infinite;
-    }
-    
-    @keyframes spinner-border {
-        to { transform: rotate(360deg); }
-    }
-    
-    .results-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 15px;
+    #results {
         margin-top: 20px;
     }
     
-    .note-message {
-        margin-top: 15px;
-        padding: 10px;
-        background: #fef3c7;
+    .exchange-item {
+        background-color: var(--input-light);
         border-radius: 8px;
-        color: #92400e;
-        text-align: center;
-        font-size: 0.85rem;
+        padding: 12px;
+        margin-bottom: 10px;
+        border: 1px solid #d1d5db;
     }
     
-    body.dark .note-message {
-        background: #78350f;
+    body.dark .exchange-item {
+        background-color: var(--input-dark);
+        border-color: #555;
+    }
+    
+    .exchange-name {
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 8px;
+    }
+    
+    .exchange-address {
+        font-size: 14px;
+        color: var(--text-light);
+        margin: 5px 0;
+    }
+    
+    body.dark .exchange-address {
+        color: var(--text-dark);
+    }
+    
+    .exchange-hours {
+        font-size: 13px;
+        color: #6b7280;
+        margin: 5px 0;
+    }
+    
+    body.dark .exchange-hours {
+        color: #9ca3af;
+    }
+    
+    .error-message {
+        background-color: var(--error-bg-light);
+        color: var(--error-text-light);
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    body.dark .error-message {
+        background-color: var(--error-bg-dark);
+        color: var(--error-text-dark);
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 40px;
+    }
+    
+    .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid var(--accent);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .note {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #fef3c7;
+        border-radius: 6px;
+        color: #92400e;
+        font-size: 13px;
+        text-align: center;
+    }
+    
+    body.dark .note {
+        background-color: #78350f;
         color: #fef3c7;
     }
 </style>
@@ -116,109 +125,90 @@
 {% block extra_js %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    let exchangeMap = null;
-    let exchangeMarkers = [];
+    let map = null;
+    let markers = [];
 
     async function findExchanges(lat, lon, locationName) {
-        const resultsDiv = document.getElementById('exchange-results');
-        const mapDiv = document.getElementById('exchange-map');
-        const loadingSpinner = document.getElementById('loading-spinner');
+        const resultsDiv = document.getElementById('results');
+        const mapDiv = document.getElementById('map');
         
-        loadingSpinner.style.display = 'block';
-        resultsDiv.innerHTML = '';
+        resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Searching for exchange providers...</p></div>';
         
         try {
             const response = await fetch(`/api/nearby_exchanges?lat=${lat}&lng=${lon}&radius=2000`);
             const data = await response.json();
             
-            loadingSpinner.style.display = 'none';
-            
             if (data.success) {
                 // Initialize or update map
-                if (!exchangeMap) {
+                if (!map) {
                     mapDiv.style.display = 'block';
-                    exchangeMap = L.map('exchange-map').setView([lat, lon], 14);
+                    map = L.map('map').setView([lat, lon], 14);
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         attribution: '© OpenStreetMap contributors'
-                    }).addTo(exchangeMap);
+                    }).addTo(map);
                 } else {
-                    exchangeMap.setView([lat, lon], 14);
-                    exchangeMarkers.forEach(marker => marker.remove());
-                    exchangeMarkers = [];
+                    map.setView([lat, lon], 14);
+                    // Clear existing markers
+                    markers.forEach(marker => marker.remove());
+                    markers = [];
                 }
                 
                 // Build results HTML
-                let resultsHtml = `<h3>🏦 Exchange Providers near ${locationName}</h3>`;
+                let resultsHtml = `<h3>📍 Exchange Providers near ${locationName}</h3>`;
                 resultsHtml += `<p>Found ${data.count} location${data.count !== 1 ? 's' : ''}</p>`;
-                resultsHtml += '<div class="results-grid">';
                 
                 data.exchanges.forEach((exchange, index) => {
                     // Add marker to map
-                    const marker = L.marker([exchange.lat, exchange.lon]).addTo(exchangeMap);
+                    const marker = L.marker([exchange.lat, exchange.lon]).addTo(map);
                     marker.bindPopup(`
                         <b>${exchange.name}</b><br>
                         📍 ${exchange.address}<br>
                         🕒 ${exchange.opening_hours}<br>
                         📞 ${exchange.phone}
                     `);
-                    exchangeMarkers.push(marker);
+                    markers.push(marker);
                     
                     // Add to results list
                     resultsHtml += `
-                        <div class="exchange-card">
+                        <div class="exchange-item">
                             <div class="exchange-name">${exchange.name}</div>
-                            <div class="exchange-detail">
-                                <i class="fas fa-location-dot"></i>
-                                <span>${exchange.address}</span>
-                            </div>
-                            <div class="exchange-detail">
-                                <i class="far fa-clock"></i>
-                                <span>${exchange.opening_hours}</span>
-                            </div>
-                            <div class="exchange-detail">
-                                <i class="fas fa-phone"></i>
-                                <span>${exchange.phone}</span>
-                            </div>
+                            <div class="exchange-address">📍 ${exchange.address}</div>
+                            <div class="exchange-hours">🕒 ${exchange.opening_hours}</div>
+                            <div class="exchange-hours">📞 ${exchange.phone}</div>
                         </div>
                     `;
                 });
                 
-                resultsHtml += '</div>';
                 if (data.note) {
-                    resultsHtml += `<div class="note-message">ℹ️ ${data.note}</div>`;
+                    resultsHtml += `<div class="note">ℹ️ ${data.note}</div>`;
                 }
+                
                 resultsDiv.innerHTML = resultsHtml;
             } else {
-                resultsDiv.innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444;">❌ ${data.error}</div>`;
+                resultsDiv.innerHTML = `<div class="error-message">❌ ${data.error}</div>`;
             }
         } catch (error) {
-            loadingSpinner.style.display = 'none';
             console.error("Exchange finder error:", error);
-            resultsDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">❌ Failed to find exchange providers. Please try again.</div>';
+            resultsDiv.innerHTML = '<div class="error-message">❌ Failed to find exchange providers. Please try again.</div>';
         }
     }
 
     async function searchLocation() {
-        const location = document.getElementById('location-search').value;
+        const location = document.getElementById('location').value;
         if (!location) {
             alert('Please enter a location');
             return;
         }
         
-        const resultsDiv = document.getElementById('exchange-results');
-        const loadingSpinner = document.getElementById('loading-spinner');
-        
-        loadingSpinner.style.display = 'block';
-        resultsDiv.innerHTML = '';
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Searching for location...</p></div>';
         
         try {
             const geoResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&limit=1`);
             const geoData = await geoResponse.json();
             
-            loadingSpinner.style.display = 'none';
-            
             if (geoData.length === 0) {
-                resultsDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">❌ Location not found. Please try a different address.</div>';
+                resultsDiv.innerHTML = '<div class="error-message">❌ Location not found. Please try a different address.</div>';
                 return;
             }
             
@@ -228,9 +218,8 @@
             
             await findExchanges(lat, lon, displayName);
         } catch (error) {
-            loadingSpinner.style.display = 'none';
             console.error("Geocoding error:", error);
-            resultsDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">❌ Error finding location. Please try again.</div>';
+            resultsDiv.innerHTML = '<div class="error-message">❌ Error finding location. Please try again.</div>';
         }
     }
 
@@ -240,11 +229,8 @@
             return;
         }
         
-        const resultsDiv = document.getElementById('exchange-results');
-        const loadingSpinner = document.getElementById('loading-spinner');
-        
-        loadingSpinner.style.display = 'block';
-        resultsDiv.innerHTML = '';
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Getting your location...</p></div>';
         
         navigator.geolocation.getCurrentPosition(
             async (position) => {
@@ -253,25 +239,22 @@
                 await findExchanges(lat, lon, 'your current location');
             },
             (error) => {
-                loadingSpinner.style.display = 'none';
                 let errorMsg = 'Unable to get your location. ';
                 if (error.code === 1) {
-                    errorMsg += 'Please allow location access and try again.';
-                } else if (error.code === 2) {
-                    errorMsg += 'Location unavailable. Please try searching for a location instead.';
+                    errorMsg += 'Please allow location access.';
                 } else {
                     errorMsg += 'Please try searching for a location instead.';
                 }
-                resultsDiv.innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444;">❌ ${errorMsg}</div>`;
+                resultsDiv.innerHTML = `<div class="error-message">❌ ${errorMsg}</div>`;
             }
         );
     }
 
     // Initialize event listeners
     document.addEventListener('DOMContentLoaded', () => {
-        const searchBtn = document.getElementById('search-location-btn');
-        const currentLocationBtn = document.getElementById('use-current-location');
-        const locationInput = document.getElementById('location-search');
+        const searchBtn = document.getElementById('search-btn');
+        const currentLocationBtn = document.getElementById('current-location-btn');
+        const locationInput = document.getElementById('location');
         
         if (searchBtn) {
             searchBtn.addEventListener('click', searchLocation);
