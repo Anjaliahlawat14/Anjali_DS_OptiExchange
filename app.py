@@ -9,6 +9,27 @@ from flask_mail import Mail, Message
 import random
 import json
 
+
+
+import os
+import sys
+
+# Print debug info (these will appear in Render logs)
+print("=== Starting OptiExchange ===", file=sys.stderr)
+print(f"Python version: {sys.version}", file=sys.stderr)
+
+# Ensure DATABASE_URL is set (use SQLite fallback for testing)
+if not os.environ.get('DATABASE_URL'):
+    print("WARNING: DATABASE_URL not set, using SQLite for development", file=sys.stderr)
+    os.environ['DATABASE_URL'] = 'sqlite:///optiexchange.db'
+
+# Ensure SECRET_KEY is set
+if not os.environ.get('SECRET_KEY'):
+    print("WARNING: SECRET_KEY not set, using default (not secure for production)", file=sys.stderr)
+    os.environ['SECRET_KEY'] = 'dev-secret-key-change-in-production'
+
+
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///users.db')
