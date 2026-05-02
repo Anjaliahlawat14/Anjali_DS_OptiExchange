@@ -62,6 +62,55 @@ def load_user(user_id):
 with app.app_context():
     db.create_all()
 
+# ============ HELPER FUNCTION FOR SAMPLE EXCHANGES ============
+def get_sample_exchanges(lat, lon):
+    """Provide sample exchange locations when API fails"""
+    lat = float(lat) if lat else 40.7128
+    lon = float(lon) if lon else -74.0060
+    
+    return [
+        {
+            'name': '🏦 Central Currency Exchange',
+            'lat': lat + 0.002,
+            'lon': lon + 0.001,
+            'address': 'Downtown Financial District, Main Street',
+            'opening_hours': 'Mon-Fri 9:00-17:00, Sat 10:00-14:00',
+            'phone': '+1 (555) 123-4567'
+        },
+        {
+            'name': '💰 International Money Transfer',
+            'lat': lat - 0.0015,
+            'lon': lon + 0.0025,
+            'address': 'City Shopping Mall, Level 2, Unit 45',
+            'opening_hours': 'Mon-Sat 10:00-20:00, Sun 11:00-18:00',
+            'phone': '+1 (555) 234-5678'
+        },
+        {
+            'name': '🌍 Global Exchange Services',
+            'lat': lat + 0.001,
+            'lon': lon - 0.002,
+            'address': 'International Airport, Terminal 3, Arrivals Hall',
+            'opening_hours': 'Open 24 hours, 7 days a week',
+            'phone': '+1 (555) 345-6789'
+        },
+        {
+            'name': '⚡ FastCash Currency',
+            'lat': lat - 0.002,
+            'lon': lon - 0.001,
+            'address': 'Metro Plaza, Ground Floor, Shop G12',
+            'opening_hours': 'Mon-Fri 9:30-18:30, Sat 10:00-16:00',
+            'phone': '+1 (555) 456-7890'
+        },
+        {
+            'name': '💎 Premier Exchange Bureau',
+            'lat': lat + 0.0025,
+            'lon': lon - 0.0015,
+            'address': 'Business Tower, First Floor',
+            'opening_hours': 'Mon-Fri 9:00-18:00, Closed weekends',
+            'phone': '+1 (555) 567-8901'
+        }
+    ]
+
 # ============ FIX 1: Currency Converter API with Validation ============
 @app.route('/api/convert')
 def convert_currency():
@@ -180,88 +229,30 @@ def get_trends():
         app.logger.error(f"Trends error: {str(e)}")
         return jsonify({'error': f'Error fetching trends: {str(e)}'}), 500
 
-# ============ FIX 3: Exchange Finder API with Fallback ============
-def get_fallback_exchanges(lat, lon):
-    """Provide fallback exchange locations when API fails"""
-    lat = float(lat) if lat else 40.7128
-    lon = float(lon) if lon else -74.0060
-    
-    # Create sample exchanges around the given location
-    return [
-        {
-            'name': 'Central Currency Exchange',
-            'lat': lat + 0.002,
-            'lon': lon + 0.001,
-            'address': 'Downtown Financial District, Main Street',
-            'opening_hours': 'Mon-Fri 9:00-17:00, Sat 10:00-14:00',
-            'phone': '+1 (555) 123-4567'
-        },
-        {
-            'name': 'International Money Transfer',
-            'lat': lat - 0.0015,
-            'lon': lon + 0.0025,
-            'address': 'City Shopping Mall, Level 2, Unit 45',
-            'opening_hours': 'Mon-Sat 10:00-20:00, Sun 11:00-18:00',
-            'phone': '+1 (555) 234-5678'
-        },
-        {
-            'name': 'Global Exchange Services',
-            'lat': lat + 0.001,
-            'lon': lon - 0.002,
-            'address': 'International Airport, Terminal 3, Arrivals Hall',
-            'opening_hours': 'Open 24 hours, 7 days a week',
-            'phone': '+1 (555) 345-6789'
-        },
-        {
-            'name': 'FastCash Currency',
-            'lat': lat - 0.002,
-            'lon': lon - 0.001,
-            'address': 'Metro Plaza, Ground Floor, Shop G12',
-            'opening_hours': 'Mon-Fri 9:30-18:30, Sat 10:00-16:00',
-            'phone': '+1 (555) 456-7890'
-        },
-        {
-            'name': 'Premier Exchange Bureau',
-            'lat': lat + 0.0025,
-            'lon': lon - 0.0015,
-            'address': 'Business Tower, First Floor',
-            'opening_hours': 'Mon-Fri 9:00-18:00, Closed weekends',
-            'phone': '+1 (555) 567-8901'
-        }
-    ]
-
-@app.route('/api/exchanges', methods=['GET', 'POST'])
-def api_find_exchanges():
+# ============ FIX 3: Exchange Finder API (Working) ============
+@app.route('/api/nearby_exchanges', methods=['GET'])
+def nearby_exchanges_api():
     """Find currency exchange locations near a given location"""
     try:
-        if request.method == 'POST':
-            data = request.get_json()
-            lat = data.get('lat')
-            lon = data.get('lon')
-            radius = data.get('radius', 2000)
-        else:
-            lat = request.args.get('lat')
-            lon = request.args.get('lon')
-            radius = request.args.get('radius', 2000)
+        lat = request.args.get('lat')
+        lng = request.args.get('lng')
+        radius = request.args.get('radius', 2000)
         
-        if not lat or not lon:
+        if not lat or not lng:
             return jsonify({'error': 'Location coordinates required'}), 400
         
-        # Convert to float
         lat = float(lat)
-        lon = float(lon)
+        lng = float(lng)
         radius = float(radius)
         
         # Overpass API query to find currency exchange services
         overpass_query = f"""
         [out:json];
         (
-          node["amenity"="currency_exchange"](around:{radius},{lat},{lon});
-          way["amenity"="currency_exchange"](around:{radius},{lat},{lon});
-          node["shop"="currency_exchange"](around:{radius},{lat},{lon});
-          way["shop"="currency_exchange"](around:{radius},{lat},{lon});
-          node["amenity"="bureau_de_change"](around:{radius},{lat},{lon});
-          way["amenity"="bureau_de_change"](around:{radius},{lat},{lon});
+          node["amenity"="currency_exchange"](around:{radius},{lat},{lng});
+          node["shop"="currency_exchange"](around:{radius},{lat},{lng});
+          node["amenity"="bureau_de_change"](around:{radius},{lat},{lng});
+          node["shop"="money_lender"](around:{radius},{lat},{lng});
         );
         out body;
         """
@@ -280,82 +271,71 @@ def api_find_exchanges():
             for element in data.get('elements', []):
                 tags = element.get('tags', {})
                 
-                # Get the best available name
+                # Get exchange name
                 name = tags.get('name', '')
                 if not name:
                     name = tags.get('brand', '')
                 if not name:
-                    name = tags.get('operator', '')
-                if not name:
                     name = 'Currency Exchange'
                 
-                # Get address components
+                # Get address
                 address = tags.get('addr:full', '')
                 if not address:
                     address = tags.get('addr:street', '')
                 if not address:
-                    address = f"Near {lat:.4f}, {lon:.4f}"
+                    address = 'Address not available'
                 
                 exchange = {
                     'name': name,
-                    'lat': element.get('lat', element.get('center', {}).get('lat', lat)),
-                    'lon': element.get('lon', element.get('center', {}).get('lon', lon)),
+                    'lat': element.get('lat'),
+                    'lon': element.get('lon'),
                     'address': address,
-                    'opening_hours': tags.get('opening_hours', 'Hours not specified'),
+                    'opening_hours': tags.get('opening_hours', 'Not specified'),
                     'phone': tags.get('phone', tags.get('contact:phone', 'Not available'))
                 }
                 exchanges.append(exchange)
             
-            # Remove duplicates (by coordinates)
-            seen = set()
-            unique_exchanges = []
-            for ex in exchanges:
-                key = (round(ex['lat'], 4), round(ex['lon'], 4))
-                if key not in seen:
-                    seen.add(key)
-                    unique_exchanges.append(ex)
-            
-            # If no exchanges found, provide fallback data
-            if not unique_exchanges:
-                unique_exchanges = get_fallback_exchanges(lat, lon)
+            # Return sample data if no exchanges found
+            if not exchanges:
+                exchanges = get_sample_exchanges(lat, lng)
                 return jsonify({
                     'success': True,
-                    'exchanges': unique_exchanges,
-                    'count': len(unique_exchanges),
-                    'note': 'Using sample data (no exchange providers found in this area)'
+                    'exchanges': exchanges,
+                    'count': len(exchanges),
+                    'note': 'No exchange providers found in this area. Showing sample locations.'
                 })
             
             return jsonify({
                 'success': True,
-                'exchanges': unique_exchanges[:10],
-                'count': len(unique_exchanges[:10])
+                'exchanges': exchanges[:15],
+                'count': len(exchanges[:15])
             })
         else:
-            # Return fallback data if Overpass API fails
-            fallback = get_fallback_exchanges(lat, lon)
+            # Return sample data if API fails
+            sample = get_sample_exchanges(lat, lng)
             return jsonify({
                 'success': True,
-                'exchanges': fallback,
-                'count': len(fallback),
-                'note': 'Using sample data (Overpass API temporarily unavailable)'
+                'exchanges': sample,
+                'count': len(sample),
+                'note': 'Using sample exchange locations (API temporarily unavailable)'
             })
             
     except requests.exceptions.Timeout:
-        fallback = get_fallback_exchanges(float(lat) if lat else 40.7128, float(lon) if lon else -74.0060)
+        sample = get_sample_exchanges(lat if 'lat' in locals() else 40.7128, lng if 'lng' in locals() else -74.0060)
         return jsonify({
             'success': True,
-            'exchanges': fallback,
-            'count': len(fallback),
-            'note': 'Using sample data (request timeout)'
+            'exchanges': sample,
+            'count': len(sample),
+            'note': 'Using sample locations (request timeout)'
         })
     except Exception as e:
-        app.logger.error(f"Exchange finder error: {str(e)}")
-        fallback = get_fallback_exchanges(40.7128, -74.0060)
+        print(f"Exchange finder error: {str(e)}")
+        sample = get_sample_exchanges(40.7128, -74.0060)
         return jsonify({
             'success': True,
-            'exchanges': fallback,
-            'count': len(fallback),
-            'note': 'Using sample data (service temporarily unavailable)'
+            'exchanges': sample,
+            'count': len(sample),
+            'note': 'Using sample exchange locations'
         })
 
 # ============ PREDICTION HELPER FUNCTION ============
@@ -528,25 +508,6 @@ def alerts():
 def exchange_finder_page():
     """Page for finding exchange providers"""
     return render_template('exchange_finder.html')
-
-@app.route('/api/nearby_exchanges')
-def nearby_exchanges():
-    """Legacy endpoint for exchange finder"""
-    lat = float(request.args.get('lat'))
-    lng = float(request.args.get('lng'))
-    radius = float(request.args.get('radius', 5000))
-
-    overpass_url = "https://overpass-api.de/api/interpreter"
-    overpass_query = f"[out:json];node[\"amenity\"=\"bureau_de_change\"](around:{radius},{lat},{lng});out body;"
-    
-    try:
-        response = requests.get(overpass_url, params={'data': overpass_query}, timeout=30)
-        if response.status_code != 200:
-            return jsonify({'error': 'Failed to fetch data from Overpass API'}), 500
-        data = response.json()
-        return jsonify(data)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/profile')
 @login_required
