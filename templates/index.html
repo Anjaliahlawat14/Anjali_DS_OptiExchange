@@ -13,16 +13,18 @@
         <button class="tool-tab {% if selected_tool == 'trends' %}active{% else %}inactive{% endif %}" data-tool="trends">
             <i class="fas fa-history"></i> <span class="tab-text">Trends</span>
         </button>
+        <!-- <button class="tool-tab {% if selected_tool == 'exchanges' %}active{% else %}inactive{% endif %}" data-tool="exchanges">
+            <i class="fas fa-map-marker-alt"></i> <span class="tab-text">Exchanges</span>
+        </button> -->
     </div>
     
-    <!-- CONVERTER TOOL -->
     <div class="tool-container {% if selected_tool == 'converter' %}active{% endif %}" id="converter-tool">
         <div class="converter-row">
-            <input type="number" class="converter-input" id="amount" placeholder="Enter amount" min="0" step="0.01" value="33.99">
+            <input type="number" class="converter-input" id="amount" placeholder="Enter amount" min="0" step="0.01">
             <select class="converter-select" id="from-currency">
-                <option value="" disabled>Select Currency</option>
+                <option value="" disabled selected>Select Currency</option>
                 {% for curr in currencies %}
-                    <option value="{{ curr }}" {% if curr == 'GBP' %}selected{% endif %}>{{ curr }}</option>
+                    <option value="{{ curr }}">{{ curr }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -30,9 +32,9 @@
         <div class="converter-row">
             <input type="number" class="converter-input" id="converted-amount" placeholder="Result" readonly>
             <select class="converter-select" id="to-currency">
-                <option value="" disabled>Select Currency</option>
+                <option value="" disabled selected>Select Currency</option>
                 {% for curr in currencies %}
-                    <option value="{{ curr }}" {% if curr == 'CHF' %}selected{% endif %}>{{ curr }}</option>
+                    <option value="{{ curr }}">{{ curr }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -44,16 +46,15 @@
         <div class="converter-result" id="conversion-rate"></div>
     </div>
     
-    <!-- PREDICTOR TOOL -->
     <div class="tool-container {% if selected_tool == 'predictor' %}active{% endif %}" id="predictor-tool">
         <form method="POST" action="/predict" id="prediction-form">
             <div class="form-group">
                 <label for="currency">Select Currency:</label>
                 <div class="select-wrapper">
                     <select name="currency" id="currency" required>
-                        <option value="" disabled {% if not selected_currency %}selected{% endif %}>Select Currency</option>
+                        <option value="" disabled selected>Select Currency</option>
                         {% for curr in currencies %}
-                            <option value="{{ curr }}" {% if selected_currency == curr %}selected{% endif %}>{{ curr }}</option>
+                            <option value="{{ curr }}">{{ curr }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -78,7 +79,6 @@
         {% endif %}
     </div>
     
-    <!-- TRENDS TOOL -->
     <div class="tool-container {% if selected_tool == 'trends' %}active{% endif %}" id="trends-tool">
         <div class="form-group">
             <label for="chart-from-currency">From Currency:</label>
@@ -127,6 +127,28 @@
             <canvas id="historyChart"></canvas>
         </div>
     </div>
+    
+    <!-- <div class="tool-container {% if selected_tool == 'exchanges' %}active{% endif %}" id="exchanges-tool">
+        <div class="form-group">
+            <label for="location-search">Search Location:</label>
+            <div class="date-wrapper" style="display: flex; gap: 10px;">
+                <input type="text" id="location-search" class="converter-input" placeholder="Enter city, address, or landmark..." style="flex: 3;">
+                <button id="search-location-btn" class="update-chart-btn" style="flex: 1; margin: 0;">
+                    <i class="fas fa-search"></i> Find
+                </button>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <button id="use-current-location" class="update-chart-btn" style="background: #10b981;">
+                <i class="fas fa-location-dot"></i> Use My Current Location
+            </button>
+        </div>
+        
+        <div id="exchange-map" style="height: 400px; margin-top: 20px; border-radius: 8px; display: none;"></div>
+        
+        <div id="exchange-results" style="margin-top: 20px;"></div>
+    </div> -->
 {% endblock %}
 
 {% block extra_css %}
@@ -370,6 +392,60 @@
         justify-content: center;
         gap: 8px;
     }
+    
+    .exchange-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+    
+    .exchange-card {
+        background: var(--input-light);
+        border-radius: 8px;
+        padding: 12px;
+        border: 1px solid #d1d5db;
+        transition: all 0.3s ease;
+    }
+    
+    body.dark .exchange-card {
+        background: var(--input-dark);
+        border-color: #555;
+    }
+    
+    .exchange-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .exchange-name {
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 8px;
+        font-size: 1rem;
+    }
+    
+    .exchange-detail {
+        font-size: 0.85rem;
+        margin: 5px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(79, 70, 229, 0.3);
+        border-radius: 50%;
+        border-top-color: var(--accent);
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
 
     @media (max-width: 768px) {
         .container {
@@ -389,6 +465,10 @@
         .tool-tab:hover {
             transform: translateY(0);
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .exchange-list {
+            grid-template-columns: 1fr;
         }
     }
 
@@ -414,10 +494,12 @@
         }
     }
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     function switchTool(toolName) {
         const tabs = document.querySelectorAll('.tool-tab');
@@ -434,12 +516,15 @@
             targetTab.classList.add('active');
             targetContainer.classList.add('active');
 
+            // Update title based on tool
             if (toolName === 'converter') {
                 title.textContent = 'OptiExchange Converter';
             } else if (toolName === 'predictor') {
                 title.textContent = 'Currency Predictions';
             } else if (toolName === 'trends') {
                 title.textContent = 'OptiExchange Charts';
+            } else if (toolName === 'exchanges') {
+                title.textContent = 'Find Exchange Providers';
             }
 
             if (toolName === 'trends') {
@@ -461,30 +546,35 @@
     document.addEventListener('DOMContentLoaded', () => {
         const selectedTool = "{{ selected_tool or 'converter' }}";
         switchTool(selectedTool);
-        
-        // Trigger initial conversion on page load
-        setTimeout(convertCurrency, 100);
     });
 
-    // ============ CURRENCY CONVERTER ============
+    // ============ FIXED: Currency Converter with Validation ============
     const convertCurrency = async () => {
         const amount = parseFloat(document.getElementById('amount').value);
         const from = document.getElementById('from-currency').value;
         const to = document.getElementById('to-currency').value;
 
+        // Enhanced validation
         if (isNaN(amount) || amount <= 0) {
             document.getElementById('converted-amount').value = '';
             document.getElementById('conversion-rate').textContent = '❌ Please enter a valid amount';
             return;
         }
 
-        if (!from || !to) {
+        if (!from || from === 'Select Currency') {
             document.getElementById('converted-amount').value = '';
-            document.getElementById('conversion-rate').textContent = '❌ Please select currencies';
+            document.getElementById('conversion-rate').textContent = '❌ Please select a source currency';
+            return;
+        }
+
+        if (!to || to === 'Select Currency') {
+            document.getElementById('converted-amount').value = '';
+            document.getElementById('conversion-rate').textContent = '❌ Please select a target currency';
             return;
         }
 
         try {
+            // Use backend proxy instead of calling Frankfurter directly
             const response = await fetch(`/api/convert?from=${from}&to=${to}&amount=${amount}`);
             
             if (!response.ok) {
@@ -516,13 +606,13 @@
     document.getElementById('swap-currencies').addEventListener('click', () => {
         const from = document.getElementById('from-currency');
         const to = document.getElementById('to-currency');
-        if (from.value && to.value) {
+        if (from.value && to.value && from.value !== 'Select Currency' && to.value !== 'Select Currency') {
             [from.value, to.value] = [to.value, from.value];
             convertCurrency();
         }
     });
 
-    // ============ TRENDS CHART ============
+    // ============ FIXED: Trends with Chart ============
     let chart;
 
     async function initChart() {
@@ -533,25 +623,59 @@
         const canvas = document.getElementById('historyChart');
 
         if (!canvas || !canvas.getContext) {
+            if (chartContainer) {
+                chartContainer.innerHTML = '<canvas id="historyChart"></canvas><p style="text-align: center; color: var(--text-light);">Chart canvas not found</p>';
+            }
             return;
         }
 
-        if (!fromCurrency || !toCurrency || !year) {
+        // Validation
+        if (!fromCurrency || fromCurrency === 'Select Currency') {
             chartContainer.classList.remove('visible');
-            alert('Please select both currencies and a year');
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+            alert('Please select a source currency');
+            return;
+        }
+
+        if (!toCurrency || toCurrency === 'Select Currency') {
+            chartContainer.classList.remove('visible');
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+            alert('Please select a target currency');
+            return;
+        }
+
+        if (!year || year === 'Select Year') {
+            chartContainer.classList.remove('visible');
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
+            alert('Please select a year');
             return;
         }
 
         if (fromCurrency === toCurrency) {
             chartContainer.classList.remove('visible');
+            if (chart) {
+                chart.destroy();
+                chart = null;
+            }
             alert('Please select different currencies');
             return;
         }
 
+        // Show loading state
         chartContainer.classList.add('visible');
         canvas.style.opacity = '0.5';
         
         try {
+            // Use backend proxy instead of calling Frankfurter directly
             const response = await fetch(`/api/trends?from=${fromCurrency}&to=${toCurrency}&year=${year}`);
             
             if (!response.ok) {
@@ -565,6 +689,11 @@
                 throw new Error(data.error || 'No data available');
             }
 
+            if (!data.dates || data.dates.length === 0) {
+                throw new Error('No exchange rate data available for the selected period');
+            }
+
+            // Format dates for display (show fewer labels for cleaner chart)
             const labels = data.dates.map(date => {
                 const d = new Date(date);
                 return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -612,7 +741,9 @@
                     },
                     scales: {
                         x: {
-                            grid: { display: false },
+                            grid: {
+                                display: false
+                            },
                             ticks: {
                                 maxRotation: 45,
                                 autoSkip: true,
@@ -622,12 +753,19 @@
                         },
                         y: {
                             beginAtZero: false,
-                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
                             ticks: {
                                 color: getComputedStyle(document.body).getPropertyValue('--text-light') || '#333',
                                 callback: function(value) {
                                     return value.toFixed(4);
                                 }
+                            },
+                            title: {
+                                display: true,
+                                text: `Exchange Rate (${toCurrency} per ${fromCurrency})`,
+                                color: getComputedStyle(document.body).getPropertyValue('--text-light') || '#333'
                             }
                         }
                     }
@@ -635,45 +773,237 @@
             });
             
             canvas.style.opacity = '1';
+            
         } catch (error) {
             console.error("Chart error:", error);
             canvas.style.opacity = '1';
+            
+            // Show error in chart area
             if (chart) {
                 chart.destroy();
                 chart = null;
             }
+            
+            // Display error message
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.font = '14px Arial';
             ctx.fillStyle = '#ef4444';
             ctx.textAlign = 'center';
             ctx.fillText(error.message, canvas.width / 2, canvas.height / 2);
+            
+            setTimeout(() => {
+                if (!chart) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }, 3000);
         }
     }
 
-    document.getElementById('update-chart').addEventListener('click', initChart);
+    document.addEventListener('DOMContentLoaded', () => {
+        convertCurrency();
 
-    document.getElementById('chart-from-currency').addEventListener('change', () => {
-        document.querySelector('.chart-container').classList.remove('visible');
-        if (chart) {
-            chart.destroy();
-            chart = null;
+        const updateBtn = document.getElementById('update-chart');
+        if (updateBtn) {
+            updateBtn.addEventListener('click', () => {
+                initChart();
+            });
+        }
+
+        const fromCurrency = document.getElementById('chart-from-currency');
+        const toCurrency = document.getElementById('chart-to-currency');
+        const yearSelect = document.getElementById('chart-year');
+
+        if (fromCurrency) {
+            fromCurrency.addEventListener('change', () => {
+                document.querySelector('.chart-container').classList.remove('visible');
+                if (chart) {
+                    chart.destroy();
+                    chart = null;
+                }
+            });
+        }
+
+        if (toCurrency) {
+            toCurrency.addEventListener('change', () => {
+                document.querySelector('.chart-container').classList.remove('visible');
+                if (chart) {
+                    chart.destroy();
+                    chart = null;
+                }
+            });
+        }
+
+        if (yearSelect) {
+            yearSelect.addEventListener('change', () => {
+                document.querySelector('.chart-container').classList.remove('visible');
+                if (chart) {
+                    chart.destroy();
+                    chart = null;
+                }
+            });
+        }
+
+        const dateInput = document.getElementById('date');
+        if (dateInput) {
+            dateInput.value = '';
         }
     });
 
-    document.getElementById('chart-to-currency').addEventListener('change', () => {
-        document.querySelector('.chart-container').classList.remove('visible');
-        if (chart) {
-            chart.destroy();
-            chart = null;
-        }
-    });
+    // ============ Exchange Finder Functionality ============
+    let exchangeMap = null;
+    let exchangeMarkers = [];
 
-    document.getElementById('chart-year').addEventListener('change', () => {
-        document.querySelector('.chart-container').classList.remove('visible');
-        if (chart) {
-            chart.destroy();
-            chart = null;
+    async function findExchanges(lat, lon, locationName) {
+        const resultsDiv = document.getElementById('exchange-results');
+        const mapDiv = document.getElementById('exchange-map');
+        
+        resultsDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div><p>Searching for exchange providers...</p></div>';
+        
+        try {
+            const response = await fetch('/api/exchanges', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lat: lat, lon: lon, radius: 2000 })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // Initialize or update map
+                if (!exchangeMap) {
+                    mapDiv.style.display = 'block';
+                    exchangeMap = L.map('exchange-map').setView([lat, lon], 14);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(exchangeMap);
+                } else {
+                    exchangeMap.setView([lat, lon], 14);
+                    // Clear existing markers
+                    exchangeMarkers.forEach(marker => marker.remove());
+                    exchangeMarkers = [];
+                }
+                
+                // Add markers and build results list
+                let resultsHtml = `<h4>📍 Exchange Providers near ${locationName}</h4>`;
+                resultsHtml += `<p>Found ${data.exchanges.length} locations</p>`;
+                resultsHtml += '<div class="exchange-list">';
+                
+                data.exchanges.forEach((exchange, index) => {
+                    // Add marker to map
+                    const marker = L.marker([exchange.lat, exchange.lon]).addTo(exchangeMap);
+                    marker.bindPopup(`
+                        <b>${exchange.name}</b><br>
+                        📍 ${exchange.address}<br>
+                        🕒 ${exchange.opening_hours}<br>
+                        📞 ${exchange.phone}
+                    `);
+                    exchangeMarkers.push(marker);
+                    
+                    // Add to results list
+                    resultsHtml += `
+                        <div class="exchange-card">
+                            <div class="exchange-name">${exchange.name}</div>
+                            <div class="exchange-detail">📍 ${exchange.address}</div>
+                            <div class="exchange-detail">🕒 ${exchange.opening_hours}</div>
+                            <div class="exchange-detail">📞 ${exchange.phone}</div>
+                        </div>
+                    `;
+                });
+                
+                resultsHtml += '</div>';
+                if (data.note) {
+                    resultsHtml += `<p style="margin-top: 15px; font-size: 0.85rem; color: #f59e0b;">ℹ️ ${data.note}</p>`;
+                }
+                resultsDiv.innerHTML = resultsHtml;
+            } else {
+                resultsDiv.innerHTML = `<div style="text-align: center; padding: 20px; color: #ef4444;">❌ ${data.error}</div>`;
+            }
+        } catch (error) {
+            console.error("Exchange finder error:", error);
+            resultsDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #ef4444;">❌ Failed to find exchange providers. Please try again.</div>';
+        }
+    }
+
+    async function searchLocation() {
+        const location = document.getElementById('location-search').value;
+        if (!location) {
+            alert('Please enter a location');
+            return;
+        }
+        
+        const resultsDiv = document.getElementById('exchange-results');
+        resultsDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div><p>Searching for location...</p></div>';
+        
+        try {
+            // Geocode using Nominatim
+            const geoResponse = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&limit=1`);
+            const geoData = await geoResponse.json();
+            
+            if (geoData.length === 0) {
+                resultsDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #ef4444;">❌ Location not found. Please try a different address.</div>';
+                return;
+            }
+            
+            const lat = parseFloat(geoData[0].lat);
+            const lon = parseFloat(geoData[0].lon);
+            const displayName = geoData[0].display_name.split(',')[0];
+            
+            await findExchanges(lat, lon, displayName);
+        } catch (error) {
+            console.error("Geocoding error:", error);
+            resultsDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #ef4444;">❌ Error finding location. Please try again.</div>';
+        }
+    }
+
+    function useCurrentLocation() {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser');
+            return;
+        }
+        
+        const resultsDiv = document.getElementById('exchange-results');
+        resultsDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div><p>Getting your location...</p></div>';
+        
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                await findExchanges(lat, lon, 'your current location');
+            },
+            (error) => {
+                console.error("Geolocation error:", error);
+                let errorMsg = 'Unable to get your location. ';
+                if (error.code === 1) {
+                    errorMsg += 'Please allow location access and try again.';
+                } else {
+                    errorMsg += 'Please try searching for a location instead.';
+                }
+                resultsDiv.innerHTML = `<div style="text-align: center; padding: 20px; color: #ef4444;">❌ ${errorMsg}</div>`;
+            }
+        );
+    }
+
+    // Initialize exchange finder event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchBtn = document.getElementById('search-location-btn');
+        const currentLocationBtn = document.getElementById('use-current-location');
+        const locationInput = document.getElementById('location-search');
+        
+        if (searchBtn) {
+            searchBtn.addEventListener('click', searchLocation);
+        }
+        
+        if (currentLocationBtn) {
+            currentLocationBtn.addEventListener('click', useCurrentLocation);
+        }
+        
+        if (locationInput) {
+            locationInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchLocation();
+                }
+            });
         }
     });
 </script>
