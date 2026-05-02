@@ -13,9 +13,9 @@
         <button class="tool-tab {% if selected_tool == 'trends' %}active{% else %}inactive{% endif %}" data-tool="trends">
             <i class="fas fa-history"></i> <span class="tab-text">Trends</span>
         </button>
-        <button class="tool-tab {% if selected_tool == 'exchanges' %}active{% else %}inactive{% endif %}" data-tool="exchanges">
+        <!-- <button class="tool-tab {% if selected_tool == 'exchanges' %}active{% else %}inactive{% endif %}" data-tool="exchanges">
             <i class="fas fa-map-marker-alt"></i> <span class="tab-text">Exchanges</span>
-        </button>
+        </button> -->
     </div>
     
     <div class="tool-container {% if selected_tool == 'converter' %}active{% endif %}" id="converter-tool">
@@ -128,7 +128,7 @@
         </div>
     </div>
     
-    <div class="tool-container {% if selected_tool == 'exchanges' %}active{% endif %}" id="exchanges-tool">
+    <!-- <div class="tool-container {% if selected_tool == 'exchanges' %}active{% endif %}" id="exchanges-tool">
         <div class="form-group">
             <label for="location-search">Search Location:</label>
             <div class="date-wrapper" style="display: flex; gap: 10px;">
@@ -148,7 +148,7 @@
         <div id="exchange-map" style="height: 400px; margin-top: 20px; border-radius: 8px; display: none;"></div>
         
         <div id="exchange-results" style="margin-top: 20px;"></div>
-    </div>
+    </div> -->
 {% endblock %}
 
 {% block extra_css %}
